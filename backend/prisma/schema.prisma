@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        Int     @id @default(autoincrement())
+  name      String
+  email     String  @unique
+  passwordHash String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admins")
+}
+
+model About {
+  id              Int     @id @default(autoincrement())
+  bio             String  @db.Text
+  description     String  @db.Text
+  yearsExperience Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("about")
+}
+
+model Contact {
+  id        Int     @id @default(autoincrement())
+  email     String
+  phone     String
+  location  String
+  github    String?
+  linkedin  String?
+  medium    String?
+  tableau   String?
+  leetcode  String?
+  instagram String?
+  youtube   String?
+  portfolio String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("contact")
+}
+
+model Skill {
+  id        Int     @id @default(autoincrement())
+  name      String
+  category  String
+  level     Int     // 0-100
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("skills")
+}
+
+model Project {
+  id          Int     @id @default(autoincrement())
+  title       String
+  description String  @db.Text
+  image       String
+  liveLink    String
+  githubLink  String
+  featured    Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  technologies ProjectTechnology[]
+
+  @@map("projects")
+}
+
+model ProjectTechnology {
+  id               Int     @id @default(autoincrement())
+  projectId        Int
+  technologyName   String
+  createdAt        DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("projectTechnologies")
+}
+
+model Experience {
+  id          Int     @id @default(autoincrement())
+  company     String
+  position    String
+  duration    String
+  description String  @db.Text
+  startDate   DateTime
+  endDate     DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("experience")
+}
