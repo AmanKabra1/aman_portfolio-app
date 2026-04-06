@@ -104,7 +104,7 @@ export class AdminLoginComponent {
     }
 
     try {
-      await this.authService.login(this.email.trim(), this.password);
+      await this.authService.login(this.email, this.password);
       this.router.navigate(['/admin/dashboard']);
     } catch (error: any) {
       this.error.set(error.message);
