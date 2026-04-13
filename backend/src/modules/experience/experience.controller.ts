@@ -8,44 +8,43 @@ import {
   Param,
   ParseIntPipe,
   UseGuards,
-  Req,
+  Request,
 } from '@nestjs/common';
 import { ExperienceService } from './experience.service';
 import { CreateExperienceDto, UpdateExperienceDto } from './dto/experience.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('experience')
+@UseGuards(JwtAuthGuard)
 export class ExperienceController {
-  constructor(private readonly experienceService: ExperienceService) { }
+  constructor(private readonly experienceService: ExperienceService) {}
 
   @Get()
-  findAll() {
-    return this.experienceService.findAll();
+  findAll(@Request() req) {
+    return this.experienceService.findAll(req.user.id);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.experienceService.findOne(id);
+  findOne(@Request() req, @Param('id', ParseIntPipe) id: number) {
+    return this.experienceService.findOne(req.user.id, id);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() dto: CreateExperienceDto, @Req() req) {
-    return this.experienceService.create(dto, req.user.id);
+  create(@Request() req, @Body() createExperienceDto: CreateExperienceDto) {
+    return this.experienceService.create(req.user.id, createExperienceDto);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Put(':id')
   update(
+    @Request() req,
     @Param('id', ParseIntPipe) id: number,
     @Body() updateExperienceDto: UpdateExperienceDto,
   ) {
-    return this.experienceService.update(id, updateExperienceDto);
+    return this.experienceService.update(req.user.id, id, updateExperienceDto);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.experienceService.remove(id);
+  remove(@Request() req, @Param('id', ParseIntPipe) id: number) {
+    return this.experienceService.remove(req.user.id, id);
   }
 }

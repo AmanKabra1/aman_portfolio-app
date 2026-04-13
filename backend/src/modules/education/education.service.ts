@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
-import { CreateExperienceDto, UpdateExperienceDto } from './dto/experience.dto';
+import { CreateEducationDto, UpdateEducationDto } from './dto/education.dto';
 
 @Injectable()
-export class ExperienceService {
+export class EducationService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(userId: number) {
@@ -15,15 +15,15 @@ export class ExperienceService {
       throw new NotFoundException('Portfolio not found');
     }
 
-    const experiences = await this.prisma.experience.findMany({
+    const education = await this.prisma.education.findMany({
       where: { portfolioId: portfolio.id },
       orderBy: { startDate: 'desc' },
     });
 
     return {
       success: true,
-      message: 'Experiences retrieved successfully',
-      data: experiences,
+      message: 'Education retrieved successfully',
+      data: education,
     };
   }
 
@@ -36,25 +36,25 @@ export class ExperienceService {
       throw new NotFoundException('Portfolio not found');
     }
 
-    const experience = await this.prisma.experience.findFirst({
+    const education = await this.prisma.education.findFirst({
       where: { 
         id,
         portfolioId: portfolio.id,
       },
     });
 
-    if (!experience) {
-      throw new NotFoundException('Experience not found');
+    if (!education) {
+      throw new NotFoundException('Education not found');
     }
 
     return {
       success: true,
-      message: 'Experience retrieved successfully',
-      data: experience,
+      message: 'Education retrieved successfully',
+      data: education,
     };
   }
 
-  async create(userId: number, createExperienceDto: CreateExperienceDto) {
+  async create(userId: number, createEducationDto: CreateEducationDto) {
     const portfolio = await this.prisma.portfolio.findUnique({
       where: { userId },
     });
@@ -63,23 +63,23 @@ export class ExperienceService {
       throw new NotFoundException('Portfolio not found');
     }
 
-    const experience = await this.prisma.experience.create({
+    const education = await this.prisma.education.create({
       data: {
-        ...createExperienceDto,
+        ...createEducationDto,
         portfolioId: portfolio.id,
-        startDate: new Date(createExperienceDto.startDate),
-        endDate: createExperienceDto.endDate ? new Date(createExperienceDto.endDate) : null,
+        startDate: new Date(createEducationDto.startDate),
+        endDate: createEducationDto.endDate ? new Date(createEducationDto.endDate) : null,
       },
     });
 
     return {
       success: true,
-      message: 'Experience created successfully',
-      data: experience,
+      message: 'Education created successfully',
+      data: education,
     };
   }
 
-  async update(userId: number, id: number, updateExperienceDto: UpdateExperienceDto) {
+  async update(userId: number, id: number, updateEducationDto: UpdateEducationDto) {
     const portfolio = await this.prisma.portfolio.findUnique({
       where: { userId },
     });
@@ -88,33 +88,33 @@ export class ExperienceService {
       throw new NotFoundException('Portfolio not found');
     }
 
-    const experience = await this.prisma.experience.findFirst({
+    const education = await this.prisma.education.findFirst({
       where: { 
         id,
         portfolioId: portfolio.id,
       },
     });
 
-    if (!experience) {
-      throw new NotFoundException('Experience not found');
+    if (!education) {
+      throw new NotFoundException('Education not found');
     }
 
-    const updateData: any = { ...updateExperienceDto };
-    if (updateExperienceDto.startDate) {
-      updateData.startDate = new Date(updateExperienceDto.startDate);
+    const updateData: any = { ...updateEducationDto };
+    if (updateEducationDto.startDate) {
+      updateData.startDate = new Date(updateEducationDto.startDate);
     }
-    if (updateExperienceDto.endDate) {
-      updateData.endDate = new Date(updateExperienceDto.endDate);
+    if (updateEducationDto.endDate) {
+      updateData.endDate = new Date(updateEducationDto.endDate);
     }
 
-    const updated = await this.prisma.experience.update({
+    const updated = await this.prisma.education.update({
       where: { id },
       data: updateData,
     });
 
     return {
       success: true,
-      message: 'Experience updated successfully',
+      message: 'Education updated successfully',
       data: updated,
     };
   }
@@ -128,24 +128,24 @@ export class ExperienceService {
       throw new NotFoundException('Portfolio not found');
     }
 
-    const experience = await this.prisma.experience.findFirst({
+    const education = await this.prisma.education.findFirst({
       where: { 
         id,
         portfolioId: portfolio.id,
       },
     });
 
-    if (!experience) {
-      throw new NotFoundException('Experience not found');
+    if (!education) {
+      throw new NotFoundException('Education not found');
     }
 
-    await this.prisma.experience.delete({
+    await this.prisma.education.delete({
       where: { id },
     });
 
     return {
       success: true,
-      message: 'Experience deleted successfully',
+      message: 'Education deleted successfully',
       data: null,
     };
   }

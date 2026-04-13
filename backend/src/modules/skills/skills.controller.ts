@@ -8,44 +8,48 @@ import {
   Param,
   ParseIntPipe,
   UseGuards,
-  Req,
+  Request,
 } from '@nestjs/common';
 import { SkillsService } from './skills.service';
 import { CreateSkillDto, UpdateSkillDto } from './dto/skill.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('skills')
+@UseGuards(JwtAuthGuard)
 export class SkillsController {
-  constructor(private readonly skillsService: SkillsService) { }
+  constructor(private readonly skillsService: SkillsService) {}
 
   @Get()
-  findAll() {
-    return this.skillsService.findAll();
+  findAll(@Request() req) {
+    return this.skillsService.findAll(req.user.id);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.skillsService.findOne(id);
+  findOne(@Request() req, @Param('id', ParseIntPipe) id: number) {
+    return this.skillsService.findOne(req.user.id, id);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() dto: CreateSkillDto, @Req() req) {
-    return this.skillsService.create(dto, req.user.id);
+  create(@Request() req, @Body() createSkillDto: CreateSkillDto) {
+    return this.skillsService.create(req.user.id, createSkillDto);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Put(':id')
   update(
+    @Request() req,
     @Param('id', ParseIntPipe) id: number,
     @Body() updateSkillDto: UpdateSkillDto,
   ) {
-    return this.skillsService.update(id, updateSkillDto);
+    return this.skillsService.update(req.user.id, id, updateSkillDto);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.skillsService.remove(id);
+  remove(@Request() req, @Param('id', ParseIntPipe) id: number) {
+    return this.skillsService.remove(req.user.id, id);
+  }
+
+  @Post('reorder')
+  reorder(@Request() req, @Body() body: { skillIds: number[] }) {
+    return this.skillsService.reorder(req.user.id, body.skillIds);
   }
 }

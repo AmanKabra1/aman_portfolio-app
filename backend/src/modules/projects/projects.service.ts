@@ -4,17 +4,23 @@ import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
 
 @Injectable()
 export class ProjectsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
-  async findAll() {
-    const projects = await this.prisma.project.findMany({
-      include: {
-        technologies: true,
-      },
-      orderBy: { createdAt: 'desc' },
+  async findAll(userId: number) {
+    const portfolio = await this.prisma.portfolio.findUnique({
+      where: { userId },
     });
 
-    // Transform to match Express format
+    if (!portfolio) {
+      throw new NotFoundException('Portfolio not found');
+    }
+
+    const projects = await this.prisma.project.findMany({
+      where: { portfolioId: portfolio.id },
+      include: { technologies: true },
+      orderBy: { order: 'asc' },
+    });
+
     const formattedProjects = projects.map((project) => ({
       ...project,
       technologies: project.technologies.map((t) => t.technologyName),
@@ -27,64 +33,85 @@ export class ProjectsService {
     };
   }
 
-  async findOne(id: number) {
-    const project = await this.prisma.project.findUnique({
-      where: { id },
-      include: {
-        technologies: true,
+  async findOne(userId: number, id: number) {
+    const portfolio = await this.prisma.portfolio.findUnique({
+      where: { userId },
+    });
+
+    if (!portfolio) {
+      throw new NotFoundException('Portfolio not found');
+    }
+
+    const project = await this.prisma.project.findFirst({
+      where: { 
+        id,
+        portfolioId: portfolio.id,
       },
+      include: { technologies: true },
     });
 
     if (!project) {
       throw new NotFoundException('Project not found');
     }
 
-    // Transform to match Express format
-    const formattedProject = {
-      ...project,
-      technologies: project.technologies.map((t) => t.technologyName),
-    };
-
     return {
       success: true,
       message: 'Project retrieved successfully',
-      data: formattedProject,
+      data: {
+        ...project,
+        technologies: project.technologies.map((t) => t.technologyName),
+      },
     };
   }
 
-  async create(createProjectDto: CreateProjectDto, userId: number) {
+  async create(userId: number, createProjectDto: CreateProjectDto) {
+    const portfolio = await this.prisma.portfolio.findUnique({
+      where: { userId },
+    });
+
+    if (!portfolio) {
+      throw new NotFoundException('Portfolio not found');
+    }
+
     const { technologies, ...projectData } = createProjectDto;
 
     const project = await this.prisma.project.create({
       data: {
         ...projectData,
-
-        portfolio: {
-          connect: {
-            userId: userId, // 🔥 REQUIRED
-          },
-        },
-
+        portfolioId: portfolio.id,
         technologies: {
           create: technologies.map((tech) => ({
             technologyName: tech,
           })),
         },
       },
-      include: {
-        technologies: true,
-      },
+      include: { technologies: true },
     });
 
     return {
-      ...project,
-      technologies: project.technologies.map((t) => t.technologyName),
+      success: true,
+      message: 'Project created successfully',
+      data: {
+        ...project,
+        technologies: project.technologies.map((t) => t.technologyName),
+      },
     };
   }
 
-  async update(id: number, updateProjectDto: UpdateProjectDto) {
-    const project = await this.prisma.project.findUnique({
-      where: { id },
+  async update(userId: number, id: number, updateProjectDto: UpdateProjectDto) {
+    const portfolio = await this.prisma.portfolio.findUnique({
+      where: { userId },
+    });
+
+    if (!portfolio) {
+      throw new NotFoundException('Portfolio not found');
+    }
+
+    const project = await this.prisma.project.findFirst({
+      where: { 
+        id,
+        portfolioId: portfolio.id,
+      },
     });
 
     if (!project) {
@@ -93,8 +120,7 @@ export class ProjectsService {
 
     const { technologies, ...projectData } = updateProjectDto;
 
-    // Update project with technologies
-    const updatedProject = await this.prisma.project.update({
+    const updated = await this.prisma.project.update({
       where: { id },
       data: {
         ...projectData,
@@ -107,27 +133,33 @@ export class ProjectsService {
           },
         }),
       },
-      include: {
-        technologies: true,
-      },
+      include: { technologies: true },
     });
-
-    // Transform to match Express format
-    const formattedProject = {
-      ...updatedProject,
-      technologies: updatedProject.technologies.map((t) => t.technologyName),
-    };
 
     return {
       success: true,
       message: 'Project updated successfully',
-      data: formattedProject,
+      data: {
+        ...updated,
+        technologies: updated.technologies.map((t) => t.technologyName),
+      },
     };
   }
 
-  async remove(id: number) {
-    const project = await this.prisma.project.findUnique({
-      where: { id },
+  async remove(userId: number, id: number) {
+    const portfolio = await this.prisma.portfolio.findUnique({
+      where: { userId },
+    });
+
+    if (!portfolio) {
+      throw new NotFoundException('Portfolio not found');
+    }
+
+    const project = await this.prisma.project.findFirst({
+      where: { 
+        id,
+        portfolioId: portfolio.id,
+      },
     });
 
     if (!project) {

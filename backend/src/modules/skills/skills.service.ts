@@ -1,14 +1,26 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateSkillDto, UpdateSkillDto } from './dto/skill.dto';
 
 @Injectable()
 export class SkillsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
-  async findAll() {
+  /**
+   * Get all skills for current user's portfolio
+   */
+  async findAll(userId: number) {
+    const portfolio = await this.prisma.portfolio.findUnique({
+      where: { userId },
+    });
+
+    if (!portfolio) {
+      throw new NotFoundException('Portfolio not found');
+    }
+
     const skills = await this.prisma.skill.findMany({
-      orderBy: { category: 'asc' },
+      where: { portfolioId: portfolio.id },
+      orderBy: { order: 'asc' },
     });
 
     return {
@@ -18,9 +30,23 @@ export class SkillsService {
     };
   }
 
-  async findOne(id: number) {
-    const skill = await this.prisma.skill.findUnique({
-      where: { id },
+  /**
+   * Get single skill
+   */
+  async findOne(userId: number, id: number) {
+    const portfolio = await this.prisma.portfolio.findUnique({
+      where: { userId },
+    });
+
+    if (!portfolio) {
+      throw new NotFoundException('Portfolio not found');
+    }
+
+    const skill = await this.prisma.skill.findFirst({
+      where: { 
+        id,
+        portfolioId: portfolio.id,
+      },
     });
 
     if (!skill) {
@@ -34,15 +60,22 @@ export class SkillsService {
     };
   }
 
-  async create(createSkillDto: CreateSkillDto, userId: number) {
+  /**
+   * Create skill
+   */
+  async create(userId: number, createSkillDto: CreateSkillDto) {
+    const portfolio = await this.prisma.portfolio.findUnique({
+      where: { userId },
+    });
+
+    if (!portfolio) {
+      throw new NotFoundException('Portfolio not found');
+    }
+
     const skill = await this.prisma.skill.create({
       data: {
         ...createSkillDto,
-        portfolio: {
-          connect: {
-            userId: userId, // 🔥 REQUIRED
-          },
-        },
+        portfolioId: portfolio.id,
       },
     });
 
@@ -53,16 +86,30 @@ export class SkillsService {
     };
   }
 
-  async update(id: number, updateSkillDto: UpdateSkillDto) {
-    const skill = await this.prisma.skill.findUnique({
-      where: { id },
+  /**
+   * Update skill
+   */
+  async update(userId: number, id: number, updateSkillDto: UpdateSkillDto) {
+    const portfolio = await this.prisma.portfolio.findUnique({
+      where: { userId },
+    });
+
+    if (!portfolio) {
+      throw new NotFoundException('Portfolio not found');
+    }
+
+    const skill = await this.prisma.skill.findFirst({
+      where: { 
+        id,
+        portfolioId: portfolio.id,
+      },
     });
 
     if (!skill) {
       throw new NotFoundException('Skill not found');
     }
 
-    const updatedSkill = await this.prisma.skill.update({
+    const updated = await this.prisma.skill.update({
       where: { id },
       data: updateSkillDto,
     });
@@ -70,13 +117,27 @@ export class SkillsService {
     return {
       success: true,
       message: 'Skill updated successfully',
-      data: updatedSkill,
+      data: updated,
     };
   }
 
-  async remove(id: number) {
-    const skill = await this.prisma.skill.findUnique({
-      where: { id },
+  /**
+   * Delete skill
+   */
+  async remove(userId: number, id: number) {
+    const portfolio = await this.prisma.portfolio.findUnique({
+      where: { userId },
+    });
+
+    if (!portfolio) {
+      throw new NotFoundException('Portfolio not found');
+    }
+
+    const skill = await this.prisma.skill.findFirst({
+      where: { 
+        id,
+        portfolioId: portfolio.id,
+      },
     });
 
     if (!skill) {
@@ -91,6 +152,37 @@ export class SkillsService {
       success: true,
       message: 'Skill deleted successfully',
       data: null,
+    };
+  }
+
+  /**
+   * Reorder skills
+   */
+  async reorder(userId: number, skillIds: number[]) {
+    const portfolio = await this.prisma.portfolio.findUnique({
+      where: { userId },
+    });
+
+    if (!portfolio) {
+      throw new NotFoundException('Portfolio not found');
+    }
+
+    // Update order for each skill
+    const updates = skillIds.map((id, index) =>
+      this.prisma.skill.updateMany({
+        where: { 
+          id,
+          portfolioId: portfolio.id,
+        },
+        data: { order: index },
+      })
+    );
+
+    await Promise.all(updates);
+
+    return {
+      success: true,
+      message: 'Skills reordered successfully',
     };
   }
 }

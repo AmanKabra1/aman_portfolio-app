@@ -8,44 +8,43 @@ import {
   Param,
   ParseIntPipe,
   UseGuards,
-  Req,
+  Request,
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('projects')
+@UseGuards(JwtAuthGuard)
 export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService) { }
+  constructor(private readonly projectsService: ProjectsService) {}
 
   @Get()
-  findAll() {
-    return this.projectsService.findAll();
+  findAll(@Request() req) {
+    return this.projectsService.findAll(req.user.id);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.projectsService.findOne(id);
+  findOne(@Request() req, @Param('id', ParseIntPipe) id: number) {
+    return this.projectsService.findOne(req.user.id, id);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() dto: CreateProjectDto, @Req() req) {
-    return this.projectsService.create(dto, req.user.id);
+  create(@Request() req, @Body() createProjectDto: CreateProjectDto) {
+    return this.projectsService.create(req.user.id, createProjectDto);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Put(':id')
   update(
+    @Request() req,
     @Param('id', ParseIntPipe) id: number,
     @Body() updateProjectDto: UpdateProjectDto,
   ) {
-    return this.projectsService.update(id, updateProjectDto);
+    return this.projectsService.update(req.user.id, id, updateProjectDto);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.projectsService.remove(id);
+  remove(@Request() req, @Param('id', ParseIntPipe) id: number) {
+    return this.projectsService.remove(req.user.id, id);
   }
 }

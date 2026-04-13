@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
-import { CreateExperienceDto, UpdateExperienceDto } from './dto/experience.dto';
+import { CreateSocialLinkDto, UpdateSocialLinkDto } from './dto/social-link.dto';
 
 @Injectable()
-export class ExperienceService {
+export class SocialLinksService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(userId: number) {
@@ -15,15 +15,15 @@ export class ExperienceService {
       throw new NotFoundException('Portfolio not found');
     }
 
-    const experiences = await this.prisma.experience.findMany({
+    const socialLinks = await this.prisma.socialLink.findMany({
       where: { portfolioId: portfolio.id },
-      orderBy: { startDate: 'desc' },
+      orderBy: { order: 'asc' },
     });
 
     return {
       success: true,
-      message: 'Experiences retrieved successfully',
-      data: experiences,
+      message: 'Social links retrieved successfully',
+      data: socialLinks,
     };
   }
 
@@ -36,25 +36,25 @@ export class ExperienceService {
       throw new NotFoundException('Portfolio not found');
     }
 
-    const experience = await this.prisma.experience.findFirst({
+    const socialLink = await this.prisma.socialLink.findFirst({
       where: { 
         id,
         portfolioId: portfolio.id,
       },
     });
 
-    if (!experience) {
-      throw new NotFoundException('Experience not found');
+    if (!socialLink) {
+      throw new NotFoundException('Social link not found');
     }
 
     return {
       success: true,
-      message: 'Experience retrieved successfully',
-      data: experience,
+      message: 'Social link retrieved successfully',
+      data: socialLink,
     };
   }
 
-  async create(userId: number, createExperienceDto: CreateExperienceDto) {
+  async create(userId: number, createSocialLinkDto: CreateSocialLinkDto) {
     const portfolio = await this.prisma.portfolio.findUnique({
       where: { userId },
     });
@@ -63,23 +63,21 @@ export class ExperienceService {
       throw new NotFoundException('Portfolio not found');
     }
 
-    const experience = await this.prisma.experience.create({
+    const socialLink = await this.prisma.socialLink.create({
       data: {
-        ...createExperienceDto,
+        ...createSocialLinkDto,
         portfolioId: portfolio.id,
-        startDate: new Date(createExperienceDto.startDate),
-        endDate: createExperienceDto.endDate ? new Date(createExperienceDto.endDate) : null,
       },
     });
 
     return {
       success: true,
-      message: 'Experience created successfully',
-      data: experience,
+      message: 'Social link created successfully',
+      data: socialLink,
     };
   }
 
-  async update(userId: number, id: number, updateExperienceDto: UpdateExperienceDto) {
+  async update(userId: number, id: number, updateSocialLinkDto: UpdateSocialLinkDto) {
     const portfolio = await this.prisma.portfolio.findUnique({
       where: { userId },
     });
@@ -88,33 +86,25 @@ export class ExperienceService {
       throw new NotFoundException('Portfolio not found');
     }
 
-    const experience = await this.prisma.experience.findFirst({
+    const socialLink = await this.prisma.socialLink.findFirst({
       where: { 
         id,
         portfolioId: portfolio.id,
       },
     });
 
-    if (!experience) {
-      throw new NotFoundException('Experience not found');
+    if (!socialLink) {
+      throw new NotFoundException('Social link not found');
     }
 
-    const updateData: any = { ...updateExperienceDto };
-    if (updateExperienceDto.startDate) {
-      updateData.startDate = new Date(updateExperienceDto.startDate);
-    }
-    if (updateExperienceDto.endDate) {
-      updateData.endDate = new Date(updateExperienceDto.endDate);
-    }
-
-    const updated = await this.prisma.experience.update({
+    const updated = await this.prisma.socialLink.update({
       where: { id },
-      data: updateData,
+      data: updateSocialLinkDto,
     });
 
     return {
       success: true,
-      message: 'Experience updated successfully',
+      message: 'Social link updated successfully',
       data: updated,
     };
   }
@@ -128,24 +118,24 @@ export class ExperienceService {
       throw new NotFoundException('Portfolio not found');
     }
 
-    const experience = await this.prisma.experience.findFirst({
+    const socialLink = await this.prisma.socialLink.findFirst({
       where: { 
         id,
         portfolioId: portfolio.id,
       },
     });
 
-    if (!experience) {
-      throw new NotFoundException('Experience not found');
+    if (!socialLink) {
+      throw new NotFoundException('Social link not found');
     }
 
-    await this.prisma.experience.delete({
+    await this.prisma.socialLink.delete({
       where: { id },
     });
 
     return {
       success: true,
-      message: 'Experience deleted successfully',
+      message: 'Social link deleted successfully',
       data: null,
     };
   }
