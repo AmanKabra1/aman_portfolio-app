@@ -3,13 +3,16 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../database/prisma.service';
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from '../users/dto/register.dto';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private prisma: PrismaService,
-    private jwtService: JwtService,
-  ) {}
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
+    private readonly usersService: UsersService,
+  ) { }
 
   async login(loginDto: LoginDto) {
     const { email, password } = loginDto;
@@ -63,5 +66,9 @@ export class AuthService {
       message: 'Admin retrieved successfully',
       data: admin,
     };
+  }
+
+  async register(registerDto: RegisterDto) {
+    return this.usersService.register(registerDto);
   }
 }

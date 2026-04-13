@@ -4,7 +4,7 @@ import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
 
 @Injectable()
 export class ProjectsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async findAll() {
     const projects = await this.prisma.project.findMany({
@@ -52,12 +52,19 @@ export class ProjectsService {
     };
   }
 
-  async create(createProjectDto: CreateProjectDto) {
+  async create(createProjectDto: CreateProjectDto, userId: number) {
     const { technologies, ...projectData } = createProjectDto;
 
     const project = await this.prisma.project.create({
       data: {
         ...projectData,
+
+        portfolio: {
+          connect: {
+            userId: userId, // 🔥 REQUIRED
+          },
+        },
+
         technologies: {
           create: technologies.map((tech) => ({
             technologyName: tech,
@@ -69,16 +76,9 @@ export class ProjectsService {
       },
     });
 
-    // Transform to match Express format
-    const formattedProject = {
+    return {
       ...project,
       technologies: project.technologies.map((t) => t.technologyName),
-    };
-
-    return {
-      success: true,
-      message: 'Project created successfully',
-      data: formattedProject,
     };
   }
 

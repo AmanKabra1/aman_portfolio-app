@@ -8,6 +8,7 @@ import {
   Param,
   ParseIntPipe,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { SkillsService } from './skills.service';
 import { CreateSkillDto, UpdateSkillDto } from './dto/skill.dto';
@@ -15,7 +16,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('skills')
 export class SkillsController {
-  constructor(private readonly skillsService: SkillsService) {}
+  constructor(private readonly skillsService: SkillsService) { }
 
   @Get()
   findAll() {
@@ -29,8 +30,8 @@ export class SkillsController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() createSkillDto: CreateSkillDto) {
-    return this.skillsService.create(createSkillDto);
+  create(@Body() dto: CreateSkillDto, @Req() req) {
+    return this.skillsService.create(dto, req.user.id);
   }
 
   @UseGuards(JwtAuthGuard)

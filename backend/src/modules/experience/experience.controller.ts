@@ -8,6 +8,7 @@ import {
   Param,
   ParseIntPipe,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { ExperienceService } from './experience.service';
 import { CreateExperienceDto, UpdateExperienceDto } from './dto/experience.dto';
@@ -15,7 +16,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('experience')
 export class ExperienceController {
-  constructor(private readonly experienceService: ExperienceService) {}
+  constructor(private readonly experienceService: ExperienceService) { }
 
   @Get()
   findAll() {
@@ -29,8 +30,8 @@ export class ExperienceController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() createExperienceDto: CreateExperienceDto) {
-    return this.experienceService.create(createExperienceDto);
+  create(@Body() dto: CreateExperienceDto, @Req() req) {
+    return this.experienceService.create(dto, req.user.id);
   }
 
   @UseGuards(JwtAuthGuard)

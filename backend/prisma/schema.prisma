@@ -1,5 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Updated Prisma Schema for Multi-Tenant Portfolio System
+// This replaces your existing schema.prisma file
 
 generator client {
   provider = "prisma-client-js"
@@ -10,21 +10,278 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ==================== USER MANAGEMENT ====================
+
+model User {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  username      String    @unique
+  passwordHash  String
+  firstName     String?
+  lastName      String?
+  photoUrl      String?
+  isActive      Boolean   @default(true)
+  role          String    @default("user") // "user" or "admin"
+  emailVerified Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  portfolio     Portfolio?
+  settings      UserSettings?
+
+  @@map("users")
+  @@index([email])
+  @@index([username])
+}
+
+model UserSettings {
+  id                  Int      @id @default(autoincrement())
+  userId              Int      @unique
+  
+  emailNotifications  Boolean  @default(true)
+  profileVisibility   String   @default("public") // "public", "private", "unlisted"
+  allowComments       Boolean  @default(true)
+  
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("user_settings")
+}
+
+// ==================== PORTFOLIO ====================
+
+model Portfolio {
+  id            Int       @id @default(autoincrement())
+  userId        Int       @unique
+  slug          String    @unique
+  
+  isPublic      Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  
+  // Basic Info
+  title         String?
+  subtitle      String?
+  bio           String?   @db.Text
+  description   String?   @db.Text
+  tagline       String?
+  
+  // Profile
+  profilePhotoUrl String?
+  coverPhotoUrl   String?
+  
+  // Resume
+  resumeUrl     String?
+  lastGeneratedAt DateTime?
+  
+  // Social & Contact
+  email         String?
+  phone         String?
+  location      String?
+  website       String?
+  
+  // Stats
+  viewCount     Int       @default(0)
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme         PortfolioTheme?
+  skills        Skill[]
+  projects      Project[]
+  experiences   Experience[]
+  education     Education[]
+  socialLinks   SocialLink[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("portfolios")
+  @@index([slug])
+  @@index([userId])
+}
+
+model PortfolioTheme {
+  id              Int       @id @default(autoincrement())
+  portfolioId     Int       @unique
+  
+  // Colors
+  primaryColor    String    @default("#3B82F6")
+  secondaryColor  String    @default("#10B981")
+  backgroundColor String    @default("#FFFFFF")
+  textColor       String    @default("#1F2937")
+  accentColor     String    @default("#F59E0B")
+  
+  // Typography
+  fontFamily      String    @default("Inter")
+  headingFont     String    @default("Inter")
+  fontSize        String    @default("medium") // "small", "medium", "large"
+  
+  // Layout
+  template        String    @default("modern") // "modern", "classic", "minimal", "creative"
+  layout          String    @default("single") // "single", "multi"
+  
+  // Sections Visibility
+  showAbout       Boolean   @default(true)
+  showSkills      Boolean   @default(true)
+  showProjects    Boolean   @default(true)
+  showExperience  Boolean   @default(true)
+  showEducation   Boolean   @default(true)
+  showContact     Boolean   @default(true)
+  
+  portfolio       Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("portfolio_themes")
+}
+
+// ==================== CONTENT SECTIONS ====================
+
+model Skill {
+  id          Int       @id @default(autoincrement())
+  portfolioId Int
+  
+  name        String
+  category    String
+  level       Int       // 0-100
+  order       Int       @default(0)
+  isVisible   Boolean   @default(true)
+  
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("skills")
+  @@index([portfolioId])
+}
+
+model Project {
+  id          Int       @id @default(autoincrement())
+  portfolioId Int
+  
+  title       String
+  description String    @db.Text
+  imageUrl    String?
+  liveUrl     String?
+  githubUrl   String?
+  featured    Boolean   @default(false)
+  order       Int       @default(0)
+  isVisible   Boolean   @default(true)
+  
+  startDate   DateTime?
+  endDate     DateTime?
+  status      String?   // "completed", "in-progress", "planned"
+  
+  technologies ProjectTechnology[]
+  
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("projects")
+  @@index([portfolioId])
+}
+
+model ProjectTechnology {
+  id               Int      @id @default(autoincrement())
+  projectId        Int
+  technologyName   String
+  
+  project          Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  createdAt        DateTime @default(now())
+
+  @@map("project_technologies")
+  @@index([projectId])
+}
+
+model Experience {
+  id          Int       @id @default(autoincrement())
+  portfolioId Int
+  
+  company     String
+  position    String
+  location    String?
+  description String    @db.Text
+  startDate   DateTime
+  endDate     DateTime?
+  isCurrent   Boolean   @default(false)
+  order       Int       @default(0)
+  isVisible   Boolean   @default(true)
+  
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("experiences")
+  @@index([portfolioId])
+}
+
+model Education {
+  id              Int       @id @default(autoincrement())
+  portfolioId     Int
+  
+  institution     String
+  degree          String
+  field           String?
+  grade           String?
+  startDate       DateTime
+  endDate         DateTime?
+  isCurrent       Boolean   @default(false)
+  description     String?   @db.Text
+  order           Int       @default(0)
+  isVisible       Boolean   @default(true)
+  
+  portfolio       Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("education")
+  @@index([portfolioId])
+}
+
+model SocialLink {
+  id          Int       @id @default(autoincrement())
+  portfolioId Int
+  
+  platform    String    // "github", "linkedin", "twitter", "instagram", etc.
+  url         String
+  username    String?
+  order       Int       @default(0)
+  isVisible   Boolean   @default(true)
+  
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("social_links")
+  @@index([portfolioId])
+}
+
+// ==================== LEGACY (Keep for backward compatibility) ====================
+// These can be removed after migration
+
 model Admin {
-  id        Int     @id @default(autoincrement())
-  name      String
-  email     String  @unique
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
   passwordHash String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@map("admins")
 }
 
 model About {
-  id              Int     @id @default(autoincrement())
-  bio             String  @db.Text
-  description     String  @db.Text
+  id              Int      @id @default(autoincrement())
+  bio             String   @db.Text
+  description     String   @db.Text
   yearsExperience Int
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -33,7 +290,7 @@ model About {
 }
 
 model Contact {
-  id        Int     @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   email     String
   phone     String
   location  String
@@ -49,56 +306,4 @@ model Contact {
   updatedAt DateTime @updatedAt
 
   @@map("contact")
-}
-
-model Skill {
-  id        Int     @id @default(autoincrement())
-  name      String
-  category  String
-  level     Int     // 0-100
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("skills")
-}
-
-model Project {
-  id          Int     @id @default(autoincrement())
-  title       String
-  description String  @db.Text
-  image       String
-  liveLink    String
-  githubLink  String
-  featured    Boolean @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  technologies ProjectTechnology[]
-
-  @@map("projects")
-}
-
-model ProjectTechnology {
-  id               Int     @id @default(autoincrement())
-  projectId        Int
-  technologyName   String
-  createdAt        DateTime @default(now())
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@map("projectTechnologies")
-}
-
-model Experience {
-  id          Int     @id @default(autoincrement())
-  company     String
-  position    String
-  duration    String
-  description String  @db.Text
-  startDate   DateTime
-  endDate     DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("experience")
 }

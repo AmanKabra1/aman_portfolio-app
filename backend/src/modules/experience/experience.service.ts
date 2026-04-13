@@ -4,7 +4,7 @@ import { CreateExperienceDto, UpdateExperienceDto } from './dto/experience.dto';
 
 @Injectable()
 export class ExperienceService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async findAll() {
     const experiences = await this.prisma.experience.findMany({
@@ -34,12 +34,20 @@ export class ExperienceService {
     };
   }
 
-  async create(createExperienceDto: CreateExperienceDto) {
+  async create(createExperienceDto: CreateExperienceDto, userId: number) {
     const experience = await this.prisma.experience.create({
       data: {
         ...createExperienceDto,
         startDate: new Date(createExperienceDto.startDate),
-        endDate: new Date(createExperienceDto.endDate),
+        endDate: createExperienceDto.endDate
+          ? new Date(createExperienceDto.endDate)
+          : null,
+
+        portfolio: {
+          connect: {
+            userId: userId, // 🔥 IMPORTANT
+          },
+        },
       },
     });
 

@@ -1,7 +1,7 @@
-import 'dotenv/config';
-import { PrismaClient } from '@prisma/client';
-import { hashPassword } from '../src/utils/authUtils.js';
+require('dotenv').config();
 
+const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcrypt');
 const prisma = new PrismaClient();
 
 async function main() {
@@ -17,7 +17,7 @@ async function main() {
   await prisma.admin.deleteMany();
 
   // Create Admin
-  const adminPassword = await hashPassword('admin123');
+  const adminPassword = await bcrypt.hash('admin123', 10);
   const admin = await prisma.admin.create({
     data: {
       name: 'Madhav Malhotra',
@@ -27,39 +27,111 @@ async function main() {
   });
   console.log('✅ Admin created:', admin.email);
 
+  const userPassword = await bcrypt.hash('user123', 10);
+
+  const user = await prisma.user.create({
+    data: {
+      email: 'user@portfolio.com',
+      username: 'madhav',
+      passwordHash: userPassword,
+      firstName: 'Madhav',
+      lastName: 'Malhotra',
+    },
+  });
+
+  console.log('✅ User created:', user.email);
+
   // Create About
-  const about = await prisma.about.create({
+  await prisma.about.create({
     data: {
       bio: 'Full Stack Developer',
-      description: 'I am a passionate full-stack developer with expertise in modern web technologies. I love building scalable and user-friendly applications that solve real-world problems. With a strong foundation in both frontend and backend development, I create seamless digital experiences.',
+      description:
+        'I am a passionate full-stack developer with expertise in modern web technologies...',
       yearsExperience: 5,
     },
   });
-  console.log('✅ About section created');
 
   // Create Contact
-  const contact = await prisma.contact.create({
+  await prisma.contact.create({
     data: {
       email: 'madhav@example.com',
       phone: '+91 9876543210',
       location: 'India',
     },
   });
-  console.log('✅ Contact section created');
+
+  const slug = 'my-portfolio-' + Date.now();
+  const portfolio = await prisma.portfolio.create({
+    data: {
+      title: 'My Portfolio',
+      slug: slug,
+      userId: user.id, // ✅ LINK TO ADMIN
+    },
+  });
 
   // Create Skills
   const skills = await prisma.skill.createMany({
     data: [
-      { name: 'JavaScript', category: 'Language', level: 95 },
-      { name: 'TypeScript', category: 'Language', level: 90 },
-      { name: 'React', category: 'Frontend', level: 95 },
-      { name: 'Angular', category: 'Frontend', level: 85 },
-      { name: 'Node.js', category: 'Backend', level: 90 },
-      { name: 'Express.js', category: 'Backend', level: 88 },
-      { name: 'PostgreSQL', category: 'Database', level: 85 },
-      { name: 'MongoDB', category: 'Database', level: 80 },
-      { name: 'Prisma', category: 'ORM', level: 90 },
-      { name: 'Docker', category: 'DevOps', level: 75 },
+      {
+        name: 'JavaScript',
+        category: 'Language',
+        level: 95,
+        portfolioId: portfolio.id,
+      },
+      {
+        name: 'TypeScript',
+        category: 'Language',
+        level: 90,
+        portfolioId: portfolio.id,
+      },
+      {
+        name: 'React',
+        category: 'Frontend',
+        level: 95,
+        portfolioId: portfolio.id,
+      },
+      {
+        name: 'Angular',
+        category: 'Frontend',
+        level: 85,
+        portfolioId: portfolio.id,
+      },
+      {
+        name: 'Node.js',
+        category: 'Backend',
+        level: 90,
+        portfolioId: portfolio.id,
+      },
+      {
+        name: 'Express.js',
+        category: 'Backend',
+        level: 88,
+        portfolioId: portfolio.id,
+      },
+      {
+        name: 'PostgreSQL',
+        category: 'Database',
+        level: 85,
+        portfolioId: portfolio.id,
+      },
+      {
+        name: 'MongoDB',
+        category: 'Database',
+        level: 80,
+        portfolioId: portfolio.id,
+      },
+      {
+        name: 'Prisma',
+        category: 'ORM',
+        level: 90,
+        portfolioId: portfolio.id,
+      },
+      {
+        name: 'Docker',
+        category: 'DevOps',
+        level: 75,
+        portfolioId: portfolio.id,
+      },
     ],
   });
   console.log(`✅ ${skills.count} skills created`);
@@ -68,30 +140,12 @@ async function main() {
   const projects = [
     {
       title: 'E-Commerce Platform',
-      description: 'A full-stack e-commerce platform built with React, Node.js, and PostgreSQL. Features include product management, shopping cart, order processing, and payment integration with Stripe.',
-      image: 'https://via.placeholder.com/400x300?text=E-Commerce',
-      liveLink: 'https://ecommerce-demo.com',
-      githubLink: 'https://github.com/madhav/ecommerce',
+      description: 'Full-stack e-commerce platform',
+      imageUrl: 'https://via.placeholder.com/400x300',
+      liveUrl: 'https://ecommerce-demo.com',
+      githubUrl: 'https://github.com/madhav/ecommerce',
       featured: true,
-      technologies: ['React', 'Node.js', 'PostgreSQL', 'Stripe'],
-    },
-    {
-      title: 'Task Management App',
-      description: 'A collaborative task management application with real-time updates. Built with Angular for the frontend and Express.js for the backend. Features include task creation, assignment, and progress tracking.',
-      image: 'https://via.placeholder.com/400x300?text=Task+Manager',
-      liveLink: 'https://taskmanager-demo.com',
-      githubLink: 'https://github.com/madhav/task-manager',
-      featured: true,
-      technologies: ['Angular', 'Express.js', 'MongoDB', 'Socket.io'],
-    },
-    {
-      title: 'Weather Application',
-      description: 'A weather forecasting application that provides real-time weather data, forecasts, and alerts. Built with React and integrated with OpenWeather API.',
-      image: 'https://via.placeholder.com/400x300?text=Weather+App',
-      liveLink: 'https://weather-demo.com',
-      githubLink: 'https://github.com/madhav/weather-app',
-      featured: false,
-      technologies: ['React', 'OpenWeather API', 'Tailwind CSS'],
+      technologies: ['React', 'Node.js', 'PostgreSQL'],
     },
   ];
 
@@ -99,7 +153,7 @@ async function main() {
     const { technologies, ...projectInfo } = projectData;
 
     const project = await prisma.project.create({
-      data: projectInfo,
+      data: { ...projectInfo, portfolioId: portfolio.id },
     });
 
     for (const tech of technologies) {
@@ -111,34 +165,19 @@ async function main() {
       });
     }
   }
-  console.log(`✅ ${projects.length} projects created`);
 
   // Create Experience
   const experiences = await prisma.experience.createMany({
     data: [
       {
         company: 'Tech Solutions Inc.',
-        position: 'Senior Full Stack Developer',
-        duration: '2021 - Present',
-        description: 'Leading the development of scalable web applications using modern technologies. Mentoring junior developers and contributing to architecture decisions.',
+        position: 'Senior Developer',
+        location: 'India', // ✅ optional but good
+        description: 'Building scalable apps',
         startDate: new Date('2021-01-15'),
         endDate: new Date('2026-12-31'),
-      },
-      {
-        company: 'Digital Innovations Ltd',
-        position: 'Full Stack Developer',
-        duration: '2019 - 2021',
-        description: 'Developed and maintained multiple client projects using React and Node.js. Implemented RESTful APIs and optimized database queries for better performance.',
-        startDate: new Date('2019-06-01'),
-        endDate: new Date('2021-01-14'),
-      },
-      {
-        company: 'StartUp Ventures',
-        position: 'Junior Web Developer',
-        duration: '2018 - 2019',
-        description: 'Built responsive web interfaces using HTML, CSS, and JavaScript. Collaborating with designers and backend developers to create seamless user experiences.',
-        startDate: new Date('2018-03-01'),
-        endDate: new Date('2019-05-31'),
+        isCurrent: false, // ✅ REQUIRED LOGIC
+        portfolioId: portfolio.id, // ✅ dynamic (not hardcoded 1)
       },
     ],
   });
@@ -148,7 +187,7 @@ async function main() {
 }
 
 main()
-  .catch(e => {
+  .catch((e) => {
     console.error('💥 Error during seed:', e);
     process.exit(1);
   })

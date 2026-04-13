@@ -6,6 +6,7 @@ import { PortfolioModule } from './modules/portfolio/portfolio.module';
 import { SkillsModule } from './modules/skills/skills.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { ExperienceModule } from './modules/experience/experience.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ExperienceModule } from './modules/experience/experience.module';
     }),
     DatabaseModule,
     AuthModule,
+    UsersModule,
     PortfolioModule,
     SkillsModule,
     ProjectsModule,

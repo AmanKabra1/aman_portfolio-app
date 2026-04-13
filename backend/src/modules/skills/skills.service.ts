@@ -4,7 +4,7 @@ import { CreateSkillDto, UpdateSkillDto } from './dto/skill.dto';
 
 @Injectable()
 export class SkillsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async findAll() {
     const skills = await this.prisma.skill.findMany({
@@ -34,9 +34,16 @@ export class SkillsService {
     };
   }
 
-  async create(createSkillDto: CreateSkillDto) {
+  async create(createSkillDto: CreateSkillDto, userId: number) {
     const skill = await this.prisma.skill.create({
-      data: createSkillDto,
+      data: {
+        ...createSkillDto,
+        portfolio: {
+          connect: {
+            userId: userId, // 🔥 REQUIRED
+          },
+        },
+      },
     });
 
     return {
