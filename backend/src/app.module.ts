@@ -9,6 +9,7 @@ import { ExperienceModule } from './modules/experience/experience.module';
 import { UsersModule } from './modules/users/users.module';
 import { ThemesModule } from './modules/themes/themes.module';
 import { ResumeModule } from './modules/resume/resume.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ResumeModule } from './modules/resume/resume.module';
     PortfoliosModule,
     ThemesModule,
     ResumeModule,
+    AdminModule,
     SkillsModule,
     ProjectsModule,
     ExperienceModule,
