@@ -5,9 +5,11 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { LoggerInterceptor } from './common/logger/logger.interceptor';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Swagger config
   const config = new DocumentBuilder()
@@ -48,6 +50,8 @@ async function bootstrap() {
 
   // Global logger interceptor
   app.useGlobalInterceptors(new LoggerInterceptor());
+
+  app.useStaticAssets(join(process.cwd(), 'uploads'));
 
   const port = process.env.PORT || 5000;
   await app.listen(port);
