@@ -19,6 +19,11 @@ export class AuthController {
     return this.authService.getMe(req.user.id);
   }
 
+  @Post('admin/register')
+  async registerAdmin(@Body() registerDto: RegisterDto) {
+    return this.authService.registerAdmin(registerDto);
+  }
+
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
