@@ -1,30 +1,42 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { API_BASE_URL } from '../config/api.config';
 
-interface LoginResponse {
+export interface User {
+  id: number;
+  email: string;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  photoUrl?: string;
+  role: string;
+  portfolio?: {
+    id: number;
+    slug: string;
+    isPublic: boolean;
+    title?: string;
+  };
+}
+
+export interface LoginResponse {
   success: boolean;
   message: string;
   data: {
     token: string;
-    admin: {
-      id: number;
-      name: string;
-      email: string;
-    };
+    user: User;
   };
 }
 
-interface MeResponse {
+export interface RegisterResponse {
   success: boolean;
   message: string;
   data: {
-    admin: {
-      id: number;
-      name: string;
-      email: string;
-    };
+    id: number;
+    email: string;
+    username: string;
+    firstName?: string;
+    lastName?: string;
   };
 }
 
@@ -33,14 +45,18 @@ export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
 
-  private tokenKey = 'portfolio_admin_token';
-  private adminKey = 'portfolio_admin_user';
+  private tokenKey = 'portfolio_token';
+  private userKey = 'portfolio_user';
 
   token = signal<string | null>(this.readToken());
-  admin = signal<any>(this.readAdmin());
+  user = signal<User | null>(this.readUser());
   isLoading = signal(false);
   error = signal<string | null>(null);
+
   isAuthenticated = computed(() => Boolean(this.token()));
+  isAdmin = computed(() => this.user()?.role === 'admin');
+  isUser = computed(() => this.user()?.role === 'user');
+  userPortfolio = computed(() => this.user()?.portfolio);
 
   constructor() {
     if (this.token()) {
@@ -62,10 +78,17 @@ export class AuthService {
       }
 
       this.token.set(response.data.token);
-      this.admin.set(response.data.admin);
+      this.user.set(response.data.user);
 
       localStorage.setItem(this.tokenKey, response.data.token);
-      localStorage.setItem(this.adminKey, JSON.stringify(response.data.admin));
+      localStorage.setItem(this.userKey, JSON.stringify(response.data.user));
+
+      // Redirect based on role
+      if (response.data.user.role === 'admin') {
+        this.router.navigate(['/admin/dashboard']);
+      } else {
+        this.router.navigate(['/dashboard']);
+      }
     } catch (error: any) {
       const message = error?.error?.message ?? error?.message ?? 'Login failed';
       this.error.set(message);
@@ -75,37 +98,62 @@ export class AuthService {
     }
   }
 
+  async register(data: {
+    email: string;
+    password: string;
+    username: string;
+    firstName?: string;
+    lastName?: string;
+  }): Promise<void> {
+    this.isLoading.set(true);
+    this.error.set(null);
+
+    try {
+      const response = await this.http
+        .post<RegisterResponse>(`${API_BASE_URL}/auth/register`, data)
+        .toPromise();
+
+      if (!response?.success) {
+        throw new Error(response?.message ?? 'Registration failed');
+      }
+
+      // Auto-login after registration
+      await this.login(data.email, data.password);
+    } catch (error: any) {
+      const message = error?.error?.message ?? error?.message ?? 'Registration failed';
+      this.error.set(message);
+      throw new Error(message);
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
   async loadMe(): Promise<void> {
     const token = this.token();
-
-    if (!token) {
-      return;
-    }
+    if (!token) return;
 
     this.isLoading.set(true);
     this.error.set(null);
 
     try {
       const response = await this.http
-        .get<MeResponse>(`${API_BASE_URL}/auth/me`, {
+        .get<{ success: boolean; message?: string; data: User }>(`${API_BASE_URL}/auth/me`, {
           headers: this.authHeaders(),
         })
         .toPromise();
 
-      if (!response?.success || !response.data?.admin) {
-        throw new Error(response?.message ?? 'Unable to load admin profile');
+      if (!response?.success || !response.data) {
+        throw new Error(response?.message ?? 'Failed to load user');
       }
 
-      this.admin.set(response.data.admin);
-      localStorage.setItem(this.adminKey, JSON.stringify(response.data.admin));
+      this.user.set(response.data);
+      localStorage.setItem(this.userKey, JSON.stringify(response.data));
     } catch (error: any) {
-      const message = error?.error?.message ?? error?.message ?? 'Unable to load admin profile';
+      const message = error?.error?.message ?? error?.message ?? 'Failed to load user';
       this.error.set(message);
 
       if (error?.status === 401 || error?.status === 403) {
         this.logout();
-      } else {
-        throw new Error(message);
       }
     } finally {
       this.isLoading.set(false);
@@ -114,10 +162,10 @@ export class AuthService {
 
   logout() {
     this.token.set(null);
-    this.admin.set(null);
+    this.user.set(null);
     localStorage.removeItem(this.tokenKey);
-    localStorage.removeItem(this.adminKey);
-    this.router.navigate(['/admin/login']);
+    localStorage.removeItem(this.userKey);
+    this.router.navigate(['/']);
   }
 
   authHeaders(): HttpHeaders {
@@ -128,19 +176,13 @@ export class AuthService {
   }
 
   private readToken(): string | null {
-    if (typeof localStorage === 'undefined') {
-      return null;
-    }
-
+    if (typeof localStorage === 'undefined') return null;
     return localStorage.getItem(this.tokenKey);
   }
 
-  private readAdmin() {
-    if (typeof localStorage === 'undefined') {
-      return null;
-    }
-
-    const raw = localStorage.getItem(this.adminKey);
+  private readUser(): User | null {
+    if (typeof localStorage === 'undefined') return null;
+    const raw = localStorage.getItem(this.userKey);
     return raw ? JSON.parse(raw) : null;
   }
 }

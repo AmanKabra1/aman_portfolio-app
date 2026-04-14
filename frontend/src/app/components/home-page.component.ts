@@ -6,6 +6,7 @@ import { AboutComponent } from './about.component';
 import { SkillsComponent } from './skills.component';
 import { ProjectsComponent } from './projects.component';
 import { ExperienceComponent } from './experience.component';
+import { EducationComponent } from './education.component';
 import { ContactComponent } from './contact.component';
 import { FooterComponent } from './footer.component';
 
@@ -20,6 +21,7 @@ import { FooterComponent } from './footer.component';
     SkillsComponent,
     ProjectsComponent,
     ExperienceComponent,
+    EducationComponent,
     ContactComponent,
     FooterComponent,
   ],
@@ -30,6 +32,7 @@ import { FooterComponent } from './footer.component';
     <app-skills></app-skills>
     <app-projects></app-projects>
     <app-experience></app-experience>
+    <app-education></app-education>
     <app-contact></app-contact>
 
     <app-footer></app-footer>

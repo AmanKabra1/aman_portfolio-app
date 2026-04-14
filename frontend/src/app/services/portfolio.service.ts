@@ -1,116 +1,278 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Skill, Project, Experience, AboutData, ContactData } from '../models/portfolio.model';
+import { Education, Skill, Project, Experience, AboutData, ContactData, SocialLink, Portfolio, Theme } from '../models/portfolio.model';
 import { API_BASE_URL, HEALTH_URL } from '../config/api.config';
-
-const DEFAULT_CONTACT: ContactData = {
-  email: 'dev.nest.ms@gmail.com',
-  phone: '',
-  location: '',
-  github: '',
-  linkedin: '',
-  medium: '',
-  tableau: '',
-  leetcode: '',
-  instagram: '',
-  youtube: '',
-  portfolio: '',
-};
 
 @Injectable({ providedIn: 'root' })
 export class PortfolioService {
   private http = inject(HttpClient);
 
+  // Core data signals
   private skillsData = signal<Skill[]>([]);
   private projectsData = signal<Project[]>([]);
   private experienceData = signal<Experience[]>([]);
+  private educationData = signal<Education[]>([]);
+  private socialLinksData = signal<SocialLink[]>([]);
+  private portfolioData = signal<Portfolio | null>(null);
+  private themeData = signal<Theme | null>(null);
 
-  about = signal<AboutData>({
-    bio: '',
-    description: '',
-    yearsExperience: 0,
+  // User info
+  about = signal<AboutData>({ bio: '', description: '', yearsExperience: 0 });
+  contact = signal<ContactData>({
+    email: '', phone: '', location: '',
+    github: '', linkedin: '', medium: '',
+    tableau: '', leetcode: '', instagram: '',
+    youtube: '', portfolio: ''
   });
 
-  contact = signal<ContactData>({ ...DEFAULT_CONTACT });
-
+  // Loading states
   isLoading = signal(false);
   error = signal<string | null>(null);
 
+  // Public readonly signals
   getSkills = this.skillsData.asReadonly();
   getProjects = this.projectsData.asReadonly();
   getExperience = this.experienceData.asReadonly();
+  getEducation = this.educationData.asReadonly();
+  getSocialLinks = this.socialLinksData.asReadonly();
+  getPortfolio = this.portfolioData.asReadonly();
+  theme = this.themeData.asReadonly();
 
-  constructor() {
-    this.loadPortfolio();
-  }
+  // Computed values
+  isPublicPortfolio = computed(() => this.portfolioData()?.isPublic ?? false);
+  portfolioSlug = computed(() => this.portfolioData()?.slug ?? '');
+  portfolioUrl = computed(() => this.portfolioData()?.slug ? `/p/${this.portfolioData()?.slug}` : '');
 
   checkHealth() {
     return this.http.get<{ success?: boolean; message?: string }>(HEALTH_URL);
   }
 
-  loadPortfolio() {
+  // Load authenticated user's portfolio
+  loadPortfolio(headers?: HttpHeaders) {
     this.isLoading.set(true);
     this.error.set(null);
 
+    const httpOptions = headers ? { headers } : {};
+
     this.http
-      .get<{ success: boolean; message: string; data: any }>(`${API_BASE_URL}/portfolio`)
+      .get<{ success: boolean; message: string; data: any }>(`${API_BASE_URL}/portfolios/mine`, httpOptions)
       .subscribe({
         next: (response) => {
-          const data = response.data;
-
-          this.about.set({
-            bio: data?.about?.bio ?? '',
-            description: data?.about?.description ?? '',
-            yearsExperience: Number(data?.about?.yearsExperience ?? 0),
-          });
-
-          this.contact.set({
-            email: data?.contact?.email ?? DEFAULT_CONTACT.email,
-            phone: data?.contact?.phone ?? DEFAULT_CONTACT.phone,
-            location: data?.contact?.location ?? DEFAULT_CONTACT.location,
-            github: data?.contact?.github ?? DEFAULT_CONTACT.github,
-            linkedin: data?.contact?.linkedin ?? DEFAULT_CONTACT.linkedin,
-            medium: data?.contact?.medium ?? DEFAULT_CONTACT.medium,
-            tableau: data?.contact?.tableau ?? DEFAULT_CONTACT.tableau,
-            leetcode: data?.contact?.leetcode ?? DEFAULT_CONTACT.leetcode,
-            instagram: data?.contact?.instagram ?? DEFAULT_CONTACT.instagram,
-            youtube: data?.contact?.youtube ?? DEFAULT_CONTACT.youtube,
-            portfolio: data?.contact?.portfolio ?? DEFAULT_CONTACT.portfolio,
-          });
-
-          this.skillsData.set(
-            Array.isArray(data?.skills) ? data.skills.map((skill: any) => this.mapSkill(skill)) : []
-          );
-
-          this.projectsData.set(
-            Array.isArray(data?.projects)
-              ? data.projects.map((project: any) => this.mapProject(project))
-              : []
-          );
-
-          this.experienceData.set(
-            Array.isArray(data?.experience)
-              ? this.sortExperience(
-                  data.experience.map((experience: any) => this.mapExperience(experience))
-                )
-              : []
-          );
-
+          this.mapPortfolioData(response.data);
           this.isLoading.set(false);
         },
         error: (error) => {
-          console.error('Failed to load portfolio data:', error);
-          this.error.set('Unable to load live portfolio data.');
-          this.skillsData.set([]);
-          this.projectsData.set([]);
-          this.experienceData.set([]);
-          this.about.set({ bio: '', description: '', yearsExperience: 0 });
-          this.contact.set({ ...DEFAULT_CONTACT });
+          console.error('Failed to load portfolio:', error);
+          this.error.set('Failed to load portfolio');
           this.isLoading.set(false);
         },
       });
   }
 
+  // Load public portfolio by username/slug
+  loadPublicPortfolio(identifier: string) {
+    this.isLoading.set(true);
+    this.error.set(null);
+
+    this.http
+      .get<{ success: boolean; message: string; data: any }>(`${API_BASE_URL}/portfolios/public/${identifier}`)
+      .subscribe({
+        next: (response) => {
+          this.mapPortfolioData(response.data);
+          this.isLoading.set(false);
+        },
+        error: (error) => {
+          console.error('Failed to load public portfolio:', error);
+          this.error.set('Portfolio not found');
+          this.isLoading.set(false);
+        },
+      });
+  }
+
+  private mapPortfolioData(data: any) {
+    if (!data) return;
+
+    // Map portfolio info
+    this.portfolioData.set({
+      id: data.id,
+      userId: data.userId,
+      title: data.title ?? '',
+      subtitle: data.subtitle ?? '',
+      slug: data.slug ?? '',
+      isPublic: data.isPublic ?? false,
+      bio: data.bio ?? '',
+      description: data.description ?? '',
+      profilePhotoUrl: data.profilePhotoUrl ?? '',
+      email: data.email ?? '',
+      phone: data.phone ?? '',
+      location: data.location ?? '',
+      website: data.website ?? '',
+    });
+
+    // Map theme
+    if (data.theme) {
+      this.themeData.set({
+        id: data.theme.id,
+        portfolioId: data.theme.portfolioId,
+        primaryColor: data.theme.primaryColor ?? '#3B82F6',
+        secondaryColor: data.theme.secondaryColor ?? '#10B981',
+        backgroundColor: data.theme.backgroundColor ?? '#FFFFFF',
+        textColor: data.theme.textColor ?? '#1F2937',
+        accentColor: data.theme.accentColor ?? '#F59E0B',
+        fontFamily: data.theme.fontFamily ?? 'Inter',
+        headingFont: data.theme.headingFont ?? 'Inter',
+        fontSize: data.theme.fontSize ?? 'medium',
+        template: data.theme.template ?? 'modern',
+        layout: data.theme.layout ?? 'single',
+        showAbout: data.theme.showAbout ?? true,
+        showSkills: data.theme.showSkills ?? true,
+        showProjects: data.theme.showProjects ?? true,
+        showExperience: data.theme.showExperience ?? true,
+        showEducation: data.theme.showEducation ?? true,
+        showContact: data.theme.showContact ?? true,
+      });
+    }
+
+    // Map about/bio
+    this.about.set({
+      bio: data.bio ?? '',
+      description: data.description ?? '',
+      yearsExperience: Number(data.yearsExperience ?? 0),
+    });
+
+    // Map contact
+    this.contact.set({
+      email: data.email ?? '',
+      phone: data.phone ?? '',
+      location: data.location ?? '',
+      github: data.github ?? '',
+      linkedin: data.linkedin ?? '',
+      medium: data.medium ?? '',
+      tableau: data.tableau ?? '',
+      leetcode: data.leetcode ?? '',
+      instagram: data.instagram ?? '',
+      youtube: data.youtube ?? '',
+      portfolio: data.website ?? '',
+    });
+
+    // Map skills
+    this.skillsData.set(
+      Array.isArray(data.skills) ? data.skills.map((s: any) => this.mapSkill(s)) : []
+    );
+
+    // Map projects
+    this.projectsData.set(
+      Array.isArray(data.projects) ? data.projects.map((p: any) => this.mapProject(p)) : []
+    );
+
+    // Map experience
+    this.experienceData.set(
+      Array.isArray(data.experiences)
+        ? this.sortExperience(data.experiences.map((e: any) => this.mapExperience(e)))
+        : []
+    );
+
+    // Map education
+    this.educationData.set(
+      Array.isArray(data.education)
+        ? this.sortEducation(data.education.map((e: any) => this.mapEducation(e)))
+        : []
+    );
+
+    // Map social links
+    this.socialLinksData.set(
+      Array.isArray(data.socialLinks) ? data.socialLinks.map((l: any) => this.mapSocialLink(l)) : []
+    );
+  }
+
+  // Portfolio CRUD
+  async updatePortfolio(payload: Partial<Portfolio>, headers: HttpHeaders): Promise<void> {
+    const response = await this.http
+      .put<{ success: boolean; data: any }>(`${API_BASE_URL}/portfolios/mine`, payload, { headers })
+      .toPromise();
+
+    if (response?.data) {
+      this.portfolioData.set({
+        ...this.portfolioData(),
+        ...response.data,
+      });
+    }
+  }
+
+  async updateSlug(slug: string, headers: HttpHeaders): Promise<{ slug: string; url: string }> {
+    const response = await this.http
+      .patch<{ success: boolean; data: any }>(`${API_BASE_URL}/portfolios/slug`, { slug }, { headers })
+      .toPromise();
+
+    return response?.data ?? { slug: '', url: '' };
+  }
+
+  async toggleVisibility(headers: HttpHeaders): Promise<boolean> {
+    const response = await this.http
+      .post<{ success: boolean; data: any }>(`${API_BASE_URL}/portfolios/toggle-visibility`, {}, { headers })
+      .toPromise();
+
+    if (response?.data) {
+      this.portfolioData.update(p => p ? { ...p, isPublic: response.data.isPublic } : null);
+      return response.data.isPublic;
+    }
+    return false;
+  }
+
+  async checkSlugAvailability(slug: string): Promise<{ available: boolean; suggestion?: string }> {
+    const response = await this.http
+      .get<{ success: boolean; data: any }>(`${API_BASE_URL}/portfolios/check-slug/${slug}`)
+      .toPromise();
+
+    return response?.data ?? { available: false };
+  }
+
+  // Theme CRUD
+  async fetchTheme(headers?: HttpHeaders): Promise<Theme | null> {
+    const httpOptions = headers ? { headers } : {};
+    const response = await this.http
+      .get<{ success: boolean; data: any }>(`${API_BASE_URL}/themes/mine`, httpOptions)
+      .toPromise();
+
+    if (response?.data) {
+      const theme = response.data;
+      this.themeData.set(theme);
+      return theme;
+    }
+    return null;
+  }
+
+  async updateTheme(payload: Partial<Theme>, headers: HttpHeaders): Promise<void> {
+    const response = await this.http
+      .put<{ success: boolean; data: any }>(`${API_BASE_URL}/themes/mine`, payload, { headers })
+      .toPromise();
+
+    if (response?.data) {
+      this.themeData.set(response.data);
+    }
+  }
+
+  async applyPreset(presetName: string, headers: HttpHeaders): Promise<void> {
+    await this.http
+      .post<{ success: boolean; data: any }>(`${API_BASE_URL}/themes/preset`, { preset: presetName }, { headers })
+      .toPromise();
+
+    await this.fetchTheme(headers);
+  }
+
+  getPresets() {
+    return this.http.get<{ success: boolean; data: any[] }>(`${API_BASE_URL}/themes/presets`);
+  }
+
+  getFonts() {
+    return this.http.get<{ success: boolean; data: string[] }>(`${API_BASE_URL}/themes/fonts`);
+  }
+
+  getTemplates() {
+    return this.http.get<{ success: boolean; data: string[] }>(`${API_BASE_URL}/themes/templates`);
+  }
+
+  // About CRUD
   async updateAbout(payload: AboutData, headers: HttpHeaders): Promise<void> {
     const response = await this.http
       .put<{ success: boolean; data: any }>(`${API_BASE_URL}/about`, payload, { headers })
@@ -125,6 +287,7 @@ export class PortfolioService {
     }
   }
 
+  // Contact CRUD
   async updateContact(payload: ContactData, headers: HttpHeaders): Promise<void> {
     const response = await this.http
       .put<{ success: boolean; data: any }>(`${API_BASE_URL}/contact`, payload, { headers })
@@ -132,21 +295,22 @@ export class PortfolioService {
 
     if (response?.data) {
       this.contact.set({
-        email: response.data.email ?? DEFAULT_CONTACT.email,
-        phone: response.data.phone ?? DEFAULT_CONTACT.phone,
-        location: response.data.location ?? DEFAULT_CONTACT.location,
-        github: response.data.github ?? DEFAULT_CONTACT.github,
-        linkedin: response.data.linkedin ?? DEFAULT_CONTACT.linkedin,
-        medium: response.data.medium ?? DEFAULT_CONTACT.medium,
-        tableau: response.data.tableau ?? DEFAULT_CONTACT.tableau,
-        leetcode: response.data.leetcode ?? DEFAULT_CONTACT.leetcode,
-        instagram: response.data.instagram ?? DEFAULT_CONTACT.instagram,
-        youtube: response.data.youtube ?? DEFAULT_CONTACT.youtube,
-        portfolio: response.data.portfolio ?? DEFAULT_CONTACT.portfolio,
+        email: response.data.email ?? '',
+        phone: response.data.phone ?? '',
+        location: response.data.location ?? '',
+        github: response.data.github ?? '',
+        linkedin: response.data.linkedin ?? '',
+        medium: response.data.medium ?? '',
+        tableau: response.data.tableau ?? '',
+        leetcode: response.data.leetcode ?? '',
+        instagram: response.data.instagram ?? '',
+        youtube: response.data.youtube ?? '',
+        portfolio: response.data.portfolio ?? '',
       });
     }
   }
 
+  // Skills CRUD
   async createSkill(payload: { name: string; category: string; level: number }, headers: HttpHeaders) {
     const response = await this.http
       .post<{ success: boolean; data: any }>(`${API_BASE_URL}/skills`, payload, { headers })
@@ -157,11 +321,7 @@ export class PortfolioService {
     }
   }
 
-  async updateSkill(
-    id: string | number,
-    payload: { name: string; category: string; level: number },
-    headers: HttpHeaders
-  ) {
+  async updateSkill(id: string | number, payload: { name: string; category: string; level: number }, headers: HttpHeaders) {
     const response = await this.http
       .put<{ success: boolean; data: any }>(`${API_BASE_URL}/skills/${id}`, payload, { headers })
       .toPromise();
@@ -178,6 +338,7 @@ export class PortfolioService {
     this.skillsData.update((skills) => skills.filter((skill) => skill.id !== id));
   }
 
+  // Projects CRUD
   async createProject(payload: any, headers: HttpHeaders) {
     const response = await this.http
       .post<{ success: boolean; data: any }>(`${API_BASE_URL}/projects`, payload, { headers })
@@ -205,6 +366,7 @@ export class PortfolioService {
     this.projectsData.update((projects) => projects.filter((project) => project.id !== id));
   }
 
+  // Experience CRUD
   async createExperience(payload: any, headers: HttpHeaders) {
     const response = await this.http
       .post<{ success: boolean; data: any }>(`${API_BASE_URL}/experience`, payload, { headers })
@@ -219,9 +381,7 @@ export class PortfolioService {
 
   async updateExperience(id: string | number, payload: any, headers: HttpHeaders) {
     const response = await this.http
-      .put<{ success: boolean; data: any }>(`${API_BASE_URL}/experience/${id}`, payload, {
-        headers,
-      })
+      .put<{ success: boolean; data: any }>(`${API_BASE_URL}/experience/${id}`, payload, { headers })
       .toPromise();
 
     if (response?.data) {
@@ -238,60 +398,84 @@ export class PortfolioService {
     this.experienceData.update((items) => items.filter((item) => item.id !== id));
   }
 
-  getAbout() {
-    return this.http.get<{ success: boolean; message?: string; data: any }>(`${API_BASE_URL}/about`);
+  // Education CRUD
+  async createEducation(payload: any, headers: HttpHeaders) {
+    const response = await this.http
+      .post<{ success: boolean; data: any }>(`${API_BASE_URL}/education`, payload, { headers })
+      .toPromise();
+
+    if (response?.data) {
+      this.educationData.update((items) =>
+        this.sortEducation([...items, this.mapEducation(response.data)])
+      );
+    }
   }
 
-  getContact() {
-    return this.http.get<{ success: boolean; message?: string; data: any }>(`${API_BASE_URL}/contact`);
+  async updateEducation(id: string | number, payload: any, headers: HttpHeaders) {
+    const response = await this.http
+      .put<{ success: boolean; data: any }>(`${API_BASE_URL}/education/${id}`, payload, { headers })
+      .toPromise();
+
+    if (response?.data) {
+      this.educationData.update((items) =>
+        this.sortEducation(
+          items.map((item) => (item.id === id ? this.mapEducation(response.data) : item))
+        )
+      );
+    }
   }
 
-  getSkillsList() {
-    return this.http.get<{ success: boolean; message?: string; data: any[] }>(`${API_BASE_URL}/skills`);
+  async deleteEducation(id: string | number, headers: HttpHeaders) {
+    await this.http.delete(`${API_BASE_URL}/education/${id}`, { headers }).toPromise();
+    this.educationData.update((items) => items.filter((item) => item.id !== id));
   }
 
-  getSkillById(id: string | number) {
-    return this.http.get<{ success: boolean; message?: string; data: any }>(
-      `${API_BASE_URL}/skills/${id}`
-    );
+  // Social Links CRUD
+  async createSocialLink(payload: { platform: string; url: string; username?: string }, headers: HttpHeaders) {
+    const response = await this.http
+      .post<{ success: boolean; data: any }>(`${API_BASE_URL}/social-links`, payload, { headers })
+      .toPromise();
+
+    if (response?.data) {
+      this.socialLinksData.update((links) => [...links, this.mapSocialLink(response.data)]);
+    }
   }
 
-  getProjectsList() {
-    return this.http.get<{ success: boolean; message?: string; data: any[] }>(`${API_BASE_URL}/projects`);
+  async updateSocialLink(id: string | number, payload: { platform?: string; url?: string; username?: string }, headers: HttpHeaders) {
+    const response = await this.http
+      .put<{ success: boolean; data: any }>(`${API_BASE_URL}/social-links/${id}`, payload, { headers })
+      .toPromise();
+
+    if (response?.data) {
+      this.socialLinksData.update((links) =>
+        links.map((link) => (link.id === id ? this.mapSocialLink(response.data) : link))
+      );
+    }
   }
 
-  getProjectById(id: string | number) {
-    return this.http.get<{ success: boolean; message?: string; data: any }>(
-      `${API_BASE_URL}/projects/${id}`
-    );
+  async deleteSocialLink(id: string | number, headers: HttpHeaders) {
+    await this.http.delete(`${API_BASE_URL}/social-links/${id}`, { headers }).toPromise();
+    this.socialLinksData.update((links) => links.filter((link) => link.id !== id));
   }
 
-  getExperienceList() {
-    return this.http.get<{ success: boolean; message?: string; data: any[] }>(
-      `${API_BASE_URL}/experience`
-    );
+  // Resume
+  async generateResume(template: string, headers: HttpHeaders): Promise<string> {
+    const response = await this.http
+      .post<{ success: boolean; data: { downloadUrl: string } }>(
+        `${API_BASE_URL}/resume/generate`,
+        { template },
+        { headers }
+      )
+      .toPromise();
+
+    return response?.data?.downloadUrl ?? '';
   }
 
-  getExperienceById(id: string | number) {
-    return this.http.get<{ success: boolean; message?: string; data: any }>(
-      `${API_BASE_URL}/experience/${id}`
-    );
+  getResumeDownloadUrl(filename: string): string {
+    return `${API_BASE_URL}/resume/download/${filename}`;
   }
 
-  getSkillsByCategory(category: string) {
-    return this.skillsData().filter((skill) => skill.category === category);
-  }
-
-  getFeaturedProjects() {
-    return this.projectsData().filter((project) => project.featured);
-  }
-
-  getProjectsByTech(tech: string) {
-    return this.projectsData().filter((project) =>
-      project.technologies.some((t) => t.toLowerCase().includes(tech.toLowerCase()))
-    );
-  }
-
+  // Mappers
   private mapSkill(skill: any): Skill {
     return {
       id: skill.id,
@@ -306,14 +490,14 @@ export class PortfolioService {
       id: project.id,
       title: project.title ?? '',
       description: project.description ?? '',
-      image: project.image ?? '',
+      image: project.imageUrl ?? project.image ?? '',
       technologies: Array.isArray(project.technologies)
         ? project.technologies.map((tech: any) =>
             typeof tech === 'string' ? tech : tech.technologyName ?? ''
           )
         : [],
-      liveLink: project.liveLink ?? '',
-      githubLink: project.githubLink ?? '',
+      liveLink: project.liveUrl ?? project.liveLink ?? '',
+      githubLink: project.githubUrl ?? project.githubLink ?? '',
       featured: Boolean(project.featured),
     };
   }
@@ -330,20 +514,43 @@ export class PortfolioService {
     };
   }
 
+  private mapEducation(education: any): Education {
+    return {
+      id: education.id,
+      institution: education.institution ?? '',
+      degree: education.degree ?? '',
+      field: education.field ?? '',
+      grade: education.grade ?? '',
+      startDate: education.startDate ?? '',
+      endDate: education.endDate ?? '',
+      isCurrent: Boolean(education.isCurrent),
+      description: education.description ?? '',
+    };
+  }
+
+  private mapSocialLink(link: any): SocialLink {
+    return {
+      id: link.id,
+      platform: link.platform ?? '',
+      url: link.url ?? '',
+      username: link.username ?? '',
+    };
+  }
+
+  private sortEducation(items: Education[]): Education[] {
+    return [...items].sort((a, b) => {
+      if (a.isCurrent !== b.isCurrent) return a.isCurrent ? -1 : 1;
+      const endDiff = this.toTimestamp(b.endDate) - this.toTimestamp(a.endDate);
+      if (endDiff !== 0) return endDiff;
+      return this.toTimestamp(b.startDate) - this.toTimestamp(a.startDate);
+    });
+  }
+
   private sortExperience(items: Experience[]): Experience[] {
     return [...items].sort((a, b) => {
-      const aIsCurrent = this.isCurrentExperience(a);
-      const bIsCurrent = this.isCurrentExperience(b);
-
-      if (aIsCurrent !== bIsCurrent) {
-        return aIsCurrent ? -1 : 1;
-      }
-
-      const endDateDiff = this.toTimestamp(b.endDate) - this.toTimestamp(a.endDate);
-      if (endDateDiff !== 0) {
-        return endDateDiff;
-      }
-
+      if (a.isCurrent !== b.isCurrent) return a.isCurrent ? -1 : 1;
+      const endDiff = this.toTimestamp(b.endDate) - this.toTimestamp(a.endDate);
+      if (endDiff !== 0) return endDiff;
       return this.toTimestamp(b.startDate) - this.toTimestamp(a.startDate);
     });
   }
@@ -353,38 +560,25 @@ export class PortfolioService {
     return !item.endDate || duration.includes('present') || duration.includes('current');
   }
 
-  private toTimestamp(value: string): number {
-    if (!value) {
-      return 0;
-    }
+  private isCurrentEducation(item: Education): boolean {
+    if (item.isCurrent) return true;
+    if (!item.endDate) return true;
+    return false;
+  }
 
+  private toTimestamp(value: string | undefined): number {
+    if (!value) return 0;
     const timestamp = new Date(value).getTime();
     return Number.isNaN(timestamp) ? 0 : timestamp;
   }
 
   private normalizeCategory(category: string): Skill['category'] {
     switch ((category ?? '').toLowerCase()) {
-      case 'frontend':
-      case 'front-end':
-      case 'ui':
-        return 'frontend';
-      case 'backend':
-      case 'back-end':
-      case 'api':
-        return 'backend';
-      case 'database':
-      case 'databases':
-      case 'db':
-        return 'database';
-      case 'tools':
-      case 'tooling':
-      case 'platform':
-      case 'platforms':
-        return 'tools';
-      case 'programming':
-        return 'frontend';
-      default:
-        return 'tools';
+      case 'frontend': case 'front-end': case 'ui': return 'frontend';
+      case 'backend': case 'back-end': case 'api': return 'backend';
+      case 'database': case 'databases': case 'db': return 'database';
+      case 'tools': case 'tooling': case 'platform': case 'platforms': return 'tools';
+      default: return 'tools';
     }
   }
 }

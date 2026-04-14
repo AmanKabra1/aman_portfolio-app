@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PortfolioService } from '../services/portfolio.service';
 import { AuthService } from '../services/auth.service';
-import { AboutData, ContactData, Experience, Project, Skill } from '../models/portfolio.model';
+import { AboutData, ContactData, Education, Experience, Project, Skill, SocialLink } from '../models/portfolio.model';
 
 type ValidationErrors = Record<string, string>;
 
@@ -47,7 +47,7 @@ type ValidationErrors = Record<string, string>;
           </div>
         }
 
-        <section class="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <section class="grid sm:grid-cols-2 xl:grid-cols-5 gap-4">
           <div class="dashboard-stat">
             <p class="dashboard-stat__label">Skills</p>
             <p class="dashboard-stat__value">{{ skills().length }}</p>
@@ -62,6 +62,11 @@ type ValidationErrors = Record<string, string>;
             <p class="dashboard-stat__label">Experience</p>
             <p class="dashboard-stat__value">{{ experience().length }}</p>
             <p class="dashboard-stat__hint">Career items currently visible to visitors</p>
+          </div>
+          <div class="dashboard-stat">
+            <p class="dashboard-stat__label">Education</p>
+            <p class="dashboard-stat__value">{{ education().length }}</p>
+            <p class="dashboard-stat__hint">Educational background entries</p>
           </div>
           <div class="dashboard-stat">
             <p class="dashboard-stat__label">Identity</p>
@@ -429,6 +434,158 @@ type ValidationErrors = Record<string, string>;
             </div>
           </div>
         </section>
+
+        <section class="grid lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 admin-panel p-6 md:p-7">
+            <div class="admin-panel__header mb-4">
+              <div>
+                <p class="admin-panel__eyebrow">Academic Background</p>
+                <h2 class="admin-panel__title">Education</h2>
+              </div>
+              <button class="btn-secondary" (click)="resetEducationForm()">New Education</button>
+            </div>
+
+            <div class="space-y-4">
+              @for (item of education(); track item.id) {
+                <div class="rounded-2xl border border-gray-200/90 dark:border-white/10 bg-white/70 dark:bg-white/5 p-5 shadow-sm">
+                  <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 class="font-semibold text-dark-900 dark:text-white">{{ item.degree }} at {{ item.institution }}</h3>
+                      <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ item.field }} {{ item.grade ? '• ' + item.grade : '' }}</p>
+                      <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ item.startDate | date:'MMM yyyy' }} - {{ item.isCurrent ? 'Present' : (item.endDate | date:'MMM yyyy') }}</p>
+                      @if (item.description) {
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">{{ item.description }}</p>
+                      }
+                    </div>
+                    <div class="flex gap-2">
+                      <button class="btn-secondary !px-3 !py-2" (click)="editEducation(item)">Edit</button>
+                      <button class="btn-secondary !px-3 !py-2 !text-red-600" (click)="deleteEducation(item.id)">Delete</button>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="admin-panel p-6 md:p-7">
+            <div class="admin-panel__header compact">
+              <div>
+                <p class="admin-panel__eyebrow">Editor</p>
+                <h3 class="admin-panel__title">{{ editingEducationId() ? 'Edit Education' : 'Add Education' }}</h3>
+              </div>
+            </div>
+            <div class="space-y-4">
+              <div>
+                <input [(ngModel)]="educationForm.institution" (ngModelChange)="clearValidationError('education.institution')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('education.institution')" placeholder="Institution" />
+                @if (hasValidationError('education.institution')) {
+                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['education.institution'] }}</p>
+                }
+              </div>
+              <div>
+                <input [(ngModel)]="educationForm.degree" (ngModelChange)="clearValidationError('education.degree')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('education.degree')" placeholder="Degree" />
+                @if (hasValidationError('education.degree')) {
+                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['education.degree'] }}</p>
+                }
+              </div>
+              <div>
+                <input [(ngModel)]="educationForm.field" type="text" class="w-full input-base" placeholder="Field of study" />
+              </div>
+              <div>
+                <input [(ngModel)]="educationForm.grade" type="text" class="w-full input-base" placeholder="Grade/GPA" />
+              </div>
+              <div>
+                <input [(ngModel)]="educationForm.startDate" (ngModelChange)="clearValidationError('education.startDate')" type="date" class="w-full input-base" [class.input-error]="hasValidationError('education.startDate')" />
+                @if (hasValidationError('education.startDate')) {
+                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['education.startDate'] }}</p>
+                }
+              </div>
+              <div>
+                <input [(ngModel)]="educationForm.endDate" type="date" class="w-full input-base" />
+              </div>
+              <label class="flex items-center gap-3 text-sm text-dark-900 dark:text-white">
+                <input [(ngModel)]="educationForm.isCurrent" type="checkbox" />
+                Currently studying
+              </label>
+              <div>
+                <textarea [(ngModel)]="educationForm.description" rows="4" class="w-full input-base" placeholder="Description"></textarea>
+              </div>
+              <button class="btn-primary w-full" (click)="saveEducation()">{{ editingEducationId() ? 'Update Education' : 'Add Education' }}</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="grid lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 admin-panel p-6 md:p-7">
+            <div class="admin-panel__header mb-4">
+              <div>
+                <p class="admin-panel__eyebrow">Online Presence</p>
+                <h2 class="admin-panel__title">Social Links</h2>
+              </div>
+              <button class="btn-secondary" (click)="resetSocialLinkForm()">New Link</button>
+            </div>
+
+            <div class="space-y-4">
+              @for (link of socialLinks(); track link.id) {
+                <div class="rounded-2xl border border-gray-200/90 dark:border-white/10 bg-white/70 dark:bg-white/5 p-5 shadow-sm">
+                  <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 class="font-semibold text-dark-900 dark:text-white capitalize">{{ link.platform }}</h3>
+                      <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ link.url }}</p>
+                      @if (link.username) {
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ link.username }}</p>
+                      }
+                    </div>
+                    <div class="flex gap-2">
+                      <button class="btn-secondary !px-3 !py-2" (click)="editSocialLink(link)">Edit</button>
+                      <button class="btn-secondary !px-3 !py-2 !text-red-600" (click)="deleteSocialLink(link.id)">Delete</button>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="admin-panel p-6 md:p-7">
+            <div class="admin-panel__header compact">
+              <div>
+                <p class="admin-panel__eyebrow">Editor</p>
+                <h3 class="admin-panel__title">{{ editingSocialLinkId() ? 'Edit Link' : 'Add Link' }}</h3>
+              </div>
+            </div>
+            <div class="space-y-4">
+              <div>
+                <select [(ngModel)]="socialLinkForm.platform" (ngModelChange)="clearValidationError('socialLink.platform')" class="w-full input-base" [class.input-error]="hasValidationError('socialLink.platform')">
+                  <option value="">Select Platform</option>
+                  <option value="github">GitHub</option>
+                  <option value="linkedin">LinkedIn</option>
+                  <option value="twitter">Twitter</option>
+                  <option value="instagram">Instagram</option>
+                  <option value="facebook">Facebook</option>
+                  <option value="youtube">YouTube</option>
+                  <option value="medium">Medium</option>
+                  <option value="dev">Dev.to</option>
+                  <option value="stackoverflow">Stack Overflow</option>
+                  <option value="behance">Behance</option>
+                  <option value="dribbble">Dribbble</option>
+                  <option value="website">Website</option>
+                </select>
+                @if (hasValidationError('socialLink.platform')) {
+                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['socialLink.platform'] }}</p>
+                }
+              </div>
+              <div>
+                <input [(ngModel)]="socialLinkForm.url" (ngModelChange)="clearValidationError('socialLink.url')" type="url" class="w-full input-base" [class.input-error]="hasValidationError('socialLink.url')" placeholder="https://..." />
+                @if (hasValidationError('socialLink.url')) {
+                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['socialLink.url'] }}</p>
+                }
+              </div>
+              <div>
+                <input [(ngModel)]="socialLinkForm.username" type="text" class="w-full input-base" placeholder="Username (optional)" />
+              </div>
+              <button class="btn-primary w-full" (click)="saveSocialLink()">{{ editingSocialLinkId() ? 'Update Link' : 'Add Link' }}</button>
+            </div>
+          </div>
+        </section>
       </main>
     </div>
   `,
@@ -611,6 +768,27 @@ export class AdminDashboardComponent {
   skills = this.portfolioService.getSkills;
   projects = this.portfolioService.getProjects;
   experience = this.portfolioService.getExperience;
+  education = this.portfolioService.getEducation;
+  socialLinks = this.portfolioService.getSocialLinks;
+
+  editingEducationId = signal<string | number | null>(null);
+  educationForm = {
+    institution: '',
+    degree: '',
+    field: '',
+    grade: '',
+    startDate: '',
+    endDate: '',
+    isCurrent: false,
+    description: '',
+  };
+
+  editingSocialLinkId = signal<string | number | null>(null);
+  socialLinkForm = {
+    platform: '',
+    url: '',
+    username: '',
+  };
 
   constructor() {
     effect(() => {
@@ -822,6 +1000,126 @@ export class AdminDashboardComponent {
     });
   }
 
+  editEducation(item: Education) {
+    this.editingEducationId.set(item.id);
+    this.educationForm = {
+      institution: item.institution,
+      degree: item.degree,
+      field: item.field ?? '',
+      grade: item.grade ?? '',
+      startDate: item.startDate ? item.startDate.slice(0, 10) : '',
+      endDate: item.endDate ? item.endDate.slice(0, 10) : '',
+      isCurrent: item.isCurrent ?? false,
+      description: item.description ?? '',
+    };
+    this.clearValidationGroup('education.');
+  }
+
+  resetEducationForm() {
+    this.editingEducationId.set(null);
+    this.educationForm = {
+      institution: '',
+      degree: '',
+      field: '',
+      grade: '',
+      startDate: '',
+      endDate: '',
+      isCurrent: false,
+      description: '',
+    };
+    this.clearValidationGroup('education.');
+  }
+
+  async saveEducation() {
+    const errors = this.validateEducation();
+    if (errors) {
+      return;
+    }
+
+    await this.runAction(async () => {
+      if (this.editingEducationId()) {
+        await this.portfolioService.updateEducation(
+          this.editingEducationId()!,
+          this.educationForm,
+          this.authService.authHeaders()
+        );
+        this.setStatus('Education updated.');
+      } else {
+        await this.portfolioService.createEducation(
+          this.educationForm,
+          this.authService.authHeaders()
+        );
+        this.setStatus('Education added.');
+      }
+      this.resetEducationForm();
+    });
+  }
+
+  async deleteEducation(id: string | number) {
+    await this.runAction(async () => {
+      await this.portfolioService.deleteEducation(id, this.authService.authHeaders());
+      this.setStatus('Education deleted.');
+      if (this.editingEducationId() === id) {
+        this.resetEducationForm();
+      }
+    });
+  }
+
+  editSocialLink(link: SocialLink) {
+    this.editingSocialLinkId.set(link.id);
+    this.socialLinkForm = {
+      platform: link.platform,
+      url: link.url,
+      username: link.username ?? '',
+    };
+    this.clearValidationGroup('socialLink.');
+  }
+
+  resetSocialLinkForm() {
+    this.editingSocialLinkId.set(null);
+    this.socialLinkForm = {
+      platform: '',
+      url: '',
+      username: '',
+    };
+    this.clearValidationGroup('socialLink.');
+  }
+
+  async saveSocialLink() {
+    const errors = this.validateSocialLink();
+    if (errors) {
+      return;
+    }
+
+    await this.runAction(async () => {
+      if (this.editingSocialLinkId()) {
+        await this.portfolioService.updateSocialLink(
+          this.editingSocialLinkId()!,
+          this.socialLinkForm,
+          this.authService.authHeaders()
+        );
+        this.setStatus('Social link updated.');
+      } else {
+        await this.portfolioService.createSocialLink(
+          this.socialLinkForm,
+          this.authService.authHeaders()
+        );
+        this.setStatus('Social link added.');
+      }
+      this.resetSocialLinkForm();
+    });
+  }
+
+  async deleteSocialLink(id: string | number) {
+    await this.runAction(async () => {
+      await this.portfolioService.deleteSocialLink(id, this.authService.authHeaders());
+      this.setStatus('Social link deleted.');
+      if (this.editingSocialLinkId() === id) {
+        this.resetSocialLinkForm();
+      }
+    });
+  }
+
   hasValidationError(key: string) {
     return Boolean(this.validationErrors()[key]);
   }
@@ -1009,6 +1307,44 @@ export class AdminDashboardComponent {
 
     if (this.experienceForm.endDate && this.experienceForm.startDate && this.experienceForm.endDate < this.experienceForm.startDate) {
       errors['experience.endDate'] = 'End date cannot be before start date.';
+    }
+
+    return Object.keys(errors).length ? this.setValidationErrors(errors) : false;
+  }
+
+  private validateEducation() {
+    const errors: ValidationErrors = {};
+
+    if (!this.educationForm.institution.trim()) {
+      errors['education.institution'] = 'Institution is required.';
+    }
+
+    if (!this.educationForm.degree.trim()) {
+      errors['education.degree'] = 'Degree is required.';
+    }
+
+    if (!this.educationForm.startDate) {
+      errors['education.startDate'] = 'Start date is required.';
+    }
+
+    if (this.educationForm.endDate && this.educationForm.startDate && this.educationForm.endDate < this.educationForm.startDate) {
+      errors['education.endDate'] = 'End date cannot be before start date.';
+    }
+
+    return Object.keys(errors).length ? this.setValidationErrors(errors) : false;
+  }
+
+  private validateSocialLink() {
+    const errors: ValidationErrors = {};
+
+    if (!this.socialLinkForm.platform.trim()) {
+      errors['socialLink.platform'] = 'Platform is required.';
+    }
+
+    if (!this.socialLinkForm.url.trim()) {
+      errors['socialLink.url'] = 'URL is required.';
+    } else if (!this.isValidUrl(this.socialLinkForm.url.trim())) {
+      errors['socialLink.url'] = 'Enter a valid URL.';
     }
 
     return Object.keys(errors).length ? this.setValidationErrors(errors) : false;
