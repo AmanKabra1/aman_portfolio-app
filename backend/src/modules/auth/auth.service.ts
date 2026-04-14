@@ -48,39 +48,107 @@ export class AuthService {
       role,
     });
 
+    let userData: any = {
+      id: account.id,
+      email: account.email,
+      role,
+    };
+
+    if (role === 'user') {
+      const fullUser = await this.prisma.user.findUnique({
+        where: { id: account.id },
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          firstName: true,
+          lastName: true,
+          photoUrl: true,
+          portfolio: {
+            select: {
+              id: true,
+              slug: true,
+              isPublic: true,
+              title: true,
+            },
+          },
+        },
+      });
+      userData = fullUser;
+    } else {
+      userData.name = admin.name;
+    }
+
     return {
       success: true,
       message: 'Login successful',
       data: {
         token,
-        user: {
-          id: account.id,
-          email: account.email,
-          role,
-        },
+        user: userData,
       },
     };
   }
 
-  async getMe(adminId: number) {
-    const admin = await this.prisma.admin.findUnique({
-      where: { id: adminId },
+  async getMe(userId: number, role: string) {
+    if (role === 'admin') {
+      const admin = await this.prisma.admin.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+        },
+      });
+
+      if (!admin) {
+        throw new UnauthorizedException('Admin not found');
+      }
+
+      return {
+        success: true,
+        message: 'Admin retrieved successfully',
+        data: {
+          id: admin.id,
+          name: admin.name,
+          email: admin.email,
+          role: 'admin',
+        },
+      };
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
       select: {
         id: true,
-        name: true,
         email: true,
-        createdAt: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        photoUrl: true,
+        role: true,
+        portfolio: {
+          select: {
+            id: true,
+            slug: true,
+            isPublic: true,
+            title: true,
+          },
+        },
       },
     });
 
-    if (!admin) {
-      throw new UnauthorizedException('Admin not found');
+    if (!user) {
+      throw new UnauthorizedException('User not found');
     }
 
     return {
       success: true,
-      message: 'Admin retrieved successfully',
-      data: admin,
+      message: 'User retrieved successfully',
+      data: {
+        ...user,
+        role: user.role || 'user',
+      },
     };
   }
 

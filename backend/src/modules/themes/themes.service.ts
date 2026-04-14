@@ -4,7 +4,7 @@ import { UpdateThemeDto, ThemePresetDto } from './dto/update-theme.dto';
 
 @Injectable()
 export class ThemesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   // Predefined theme presets
   private readonly presets = {
@@ -273,6 +273,52 @@ export class ThemesService {
     return {
       success: true,
       data: templates,
+    };
+  }
+
+  /**
+   * Generate CSS variables for public portfolio
+   */
+  async generateCssVariablesPublic(slug: string) {
+    const portfolio = await this.prisma.portfolio.findUnique({
+      where: { slug: slug.toLowerCase() },
+      include: { theme: true },
+    });
+
+    if (!portfolio) {
+      throw new NotFoundException('Portfolio not found');
+    }
+
+    const theme = portfolio.theme || {
+      primaryColor: '#3B82F6',
+      secondaryColor: '#10B981',
+      backgroundColor: '#FFFFFF',
+      textColor: '#1F2937',
+      accentColor: '#F59E0B',
+      fontFamily: 'Inter',
+      headingFont: 'Inter',
+      fontSize: 'medium',
+    };
+
+    const cssVariables = `
+      :root {
+        --primary-color: ${theme.primaryColor};
+        --secondary-color: ${theme.secondaryColor};
+        --background-color: ${theme.backgroundColor};
+        --text-color: ${theme.textColor};
+        --accent-color: ${theme.accentColor};
+        --font-family: ${theme.fontFamily}, sans-serif;
+        --heading-font: ${theme.headingFont}, sans-serif;
+        --font-size-base: ${theme.fontSize === 'small' ? '14px' : theme.fontSize === 'large' ? '18px' : '16px'};
+      }
+    `.trim();
+
+    return {
+      success: true,
+      data: {
+        css: cssVariables,
+        theme,
+      },
     };
   }
 

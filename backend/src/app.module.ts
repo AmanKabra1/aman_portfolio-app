@@ -12,6 +12,8 @@ import { ResumeModule } from './modules/resume/resume.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { SocialLinksModule } from './modules/social-links/social-links.module';
 import { EducationModule } from './modules/education/education.module';
+import { AboutModule } from './modules/about/about.module';
+import { ContactModule } from './modules/contact/contact.module';
 
 @Module({
   imports: [
@@ -30,7 +32,9 @@ import { EducationModule } from './modules/education/education.module';
     ExperienceModule,
     EducationModule,
     SkillsModule,
-    SocialLinksModule
+    SocialLinksModule,
+    AboutModule,
+    ContactModule,
   ],
 })
 export class AppModule {}

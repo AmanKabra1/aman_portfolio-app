@@ -4,6 +4,7 @@ import {
   Put,
   Post,
   Body,
+  Param,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -49,6 +50,14 @@ export class ThemesController {
   @Post('reset')
   resetTheme(@Request() req) {
     return this.themesService.resetTheme(req.user.id);
+  }
+
+  /**
+   * Get CSS variables for public portfolio
+   */
+  @Get('css/:slug')
+  getCssVariablesPublic(@Param('slug') slug: string) {
+    return this.themesService.generateCssVariablesPublic(slug);
   }
 
   /**
