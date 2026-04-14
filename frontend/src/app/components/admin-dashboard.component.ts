@@ -26,7 +26,7 @@ type ValidationErrors = Record<string, string>;
           <div class="flex flex-wrap items-center gap-3">
             <div class="rounded-2xl border border-gray-200/80 dark:border-white/10 bg-white/80 dark:bg-white/5 px-4 py-3">
               <p class="text-[11px] uppercase tracking-[0.22em] text-gray-500 dark:text-gray-400">Signed In As</p>
-              <p class="text-sm font-semibold text-dark-900 dark:text-white mt-1">{{ authService.admin()?.email }}</p>
+              <p class="text-sm font-semibold text-dark-900 dark:text-white mt-1">{{ authService.user()?.email }}</p>
             </div>
             <button class="btn-secondary" (click)="refresh()">Refresh</button>
             <button class="btn-primary" (click)="authService.logout()">Logout</button>
@@ -70,7 +70,7 @@ type ValidationErrors = Record<string, string>;
           </div>
           <div class="dashboard-stat">
             <p class="dashboard-stat__label">Identity</p>
-            <p class="dashboard-stat__value truncate">{{ authService.admin()?.name || 'Admin' }}</p>
+            <p class="dashboard-stat__value truncate">{{ authService.user()?.firstName || 'Admin' }}</p>
             <p class="dashboard-stat__hint">Active profile currently controlling this dashboard</p>
           </div>
         </section>
@@ -452,7 +452,7 @@ type ValidationErrors = Record<string, string>;
                     <div>
                       <h3 class="font-semibold text-dark-900 dark:text-white">{{ item.degree }} at {{ item.institution }}</h3>
                       <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ item.field }} {{ item.grade ? '• ' + item.grade : '' }}</p>
-                      <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ item.startDate | date:'MMM yyyy' }} - {{ item.isCurrent ? 'Present' : (item.endDate | date:'MMM yyyy') }}</p>
+                      <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ item.startDate | date:'MMM yyyy' }} - {{ item.isCurrent ? 'Present' : ((item.endDate ?? '') | date:'MMM yyyy') }}</p>
                       @if (item.description) {
                         <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">{{ item.description }}</p>
                       }

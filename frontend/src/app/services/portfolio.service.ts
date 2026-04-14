@@ -38,6 +38,10 @@ export class PortfolioService {
   getPortfolio = this.portfolioData.asReadonly();
   theme = this.themeData.asReadonly();
 
+  getSkillsByCategory(category: Skill['category']): Skill[] {
+    return this.skillsData().filter((skill) => skill.category === category);
+  }
+
   // Computed values
   isPublicPortfolio = computed(() => this.portfolioData()?.isPublic ?? false);
   portfolioSlug = computed(() => this.portfolioData()?.slug ?? '');

@@ -67,7 +67,7 @@ export class HeaderComponent {
 
   isMobileMenuOpen = signal(false);
   isDark = signal(this.initializeDarkMode());
-  displayName = computed(() => this.authService.admin()?.name?.trim() || 'Portfolio');
+  displayName = computed(() => (this.authService.user()?.firstName + ' ' + this.authService.user()?.lastName).trim() || 'Portfolio');
   displayInitial = computed(() => this.displayName().charAt(0).toUpperCase() || 'P');
 
   constructor() {

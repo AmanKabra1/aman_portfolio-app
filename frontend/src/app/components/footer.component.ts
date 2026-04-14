@@ -38,6 +38,6 @@ import { AuthService } from '../services/auth.service';
 export class FooterComponent {
   private authService = inject(AuthService);
 
-  displayName = computed(() => this.authService.admin()?.name?.trim() || 'Portfolio Owner');
+  displayName = computed(() => (this.authService.user()?.firstName + ' ' + this.authService.user()?.lastName).trim() || 'Portfolio Owner');
   currentYear = computed(() => new Date().getFullYear());
 }

@@ -294,7 +294,7 @@ export class ResumeComponent {
   accentColor = signal('#1d4ed8');
   colorPresets = ['#1d4ed8', '#0f766e', '#b45309', '#9333ea', '#be123c'];
 
-  displayName = computed(() => this.authService.admin()?.name?.trim() || 'Your Name');
+  displayName = computed(() => (this.authService.user()?.firstName + ' ' + this.authService.user()?.lastName).trim() || 'Your Name');
   summaryText = computed(() => this.about().bio || this.about().description || '');
 
   roleLine = computed(() => {
@@ -352,7 +352,7 @@ export class ResumeComponent {
     return bullets.slice(0, 4);
   }
 
-  dateRange(startDate: string, endDate: string) {
+  dateRange(startDate: string | undefined, endDate: string | undefined) {
     if (!startDate && !endDate) {
       return 'Present';
     }

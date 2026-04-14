@@ -28,7 +28,7 @@ import { PortfolioService } from '../services/portfolio.service';
               </div>
               <div class="text-right">
                 <span class="text-xs font-semibold px-3 py-1 bg-primary-100 dark:bg-dark-700 text-primary-700 dark:text-primary-300 rounded-full">
-                  {{ item.startDate | date:'MMM yyyy' }} - {{ item.isCurrent ? 'Present' : (item.endDate | date:'MMM yyyy') }}
+                  {{ item.startDate | date:'MMM yyyy' }} - {{ item.isCurrent ? 'Present' : ((item.endDate ?? '') | date:'MMM yyyy') }}
                 </span>
                 @if (item.grade) {
                   <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ item.grade }}</p>
