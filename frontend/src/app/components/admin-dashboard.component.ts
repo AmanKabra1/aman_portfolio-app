@@ -32,6 +32,30 @@ type ValidationErrors = Record<string, string>;
             <button class="btn-primary" (click)="authService.logout()">Logout</button>
           </div>
         </div>
+
+        <!-- Tab Navigation -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6">
+          <nav class="flex gap-1">
+            <button
+              (click)="currentTab.set('my-portfolio')"
+              [class]="currentTab() === 'my-portfolio' ? 'tab-button active' : 'tab-button'"
+            >
+              📊 My Portfolio
+            </button>
+            <button
+              (click)="currentTab.set('all-users')"
+              [class]="currentTab() === 'all-users' ? 'tab-button active' : 'tab-button'"
+            >
+              👥 All Users
+            </button>
+            <button
+              (click)="currentTab.set('live-updates')"
+              [class]="currentTab() === 'live-updates' ? 'tab-button active' : 'tab-button'"
+            >
+              🔔 Live Updates
+            </button>
+          </nav>
+        </div>
       </header>
 
       <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
@@ -47,545 +71,671 @@ type ValidationErrors = Record<string, string>;
           </div>
         }
 
-        <section class="grid sm:grid-cols-2 xl:grid-cols-5 gap-4">
-          <div class="dashboard-stat">
-            <p class="dashboard-stat__label">Skills</p>
-            <p class="dashboard-stat__value">{{ skills().length }}</p>
-            <p class="dashboard-stat__hint">Live technologies shown on the public portfolio</p>
-          </div>
-          <div class="dashboard-stat">
-            <p class="dashboard-stat__label">Projects</p>
-            <p class="dashboard-stat__value">{{ projects().length }}</p>
-            <p class="dashboard-stat__hint">Showcase entries powering portfolio and resume</p>
-          </div>
-          <div class="dashboard-stat">
-            <p class="dashboard-stat__label">Experience</p>
-            <p class="dashboard-stat__value">{{ experience().length }}</p>
-            <p class="dashboard-stat__hint">Career items currently visible to visitors</p>
-          </div>
-          <div class="dashboard-stat">
-            <p class="dashboard-stat__label">Education</p>
-            <p class="dashboard-stat__value">{{ education().length }}</p>
-            <p class="dashboard-stat__hint">Educational background entries</p>
-          </div>
-          <div class="dashboard-stat">
-            <p class="dashboard-stat__label">Identity</p>
-            <p class="dashboard-stat__value truncate">{{ authService.user()?.firstName || 'Admin' }}</p>
-            <p class="dashboard-stat__hint">Active profile currently controlling this dashboard</p>
-          </div>
-        </section>
+        <!-- My Portfolio Tab -->
+        @if (currentTab() === 'my-portfolio') {
+          <section class="grid sm:grid-cols-2 xl:grid-cols-5 gap-4">
+            <div class="dashboard-stat">
+              <p class="dashboard-stat__label">Skills</p>
+              <p class="dashboard-stat__value">{{ skills().length }}</p>
+              <p class="dashboard-stat__hint">Live technologies shown on the public portfolio</p>
+            </div>
+            <div class="dashboard-stat">
+              <p class="dashboard-stat__label">Projects</p>
+              <p class="dashboard-stat__value">{{ projects().length }}</p>
+              <p class="dashboard-stat__hint">Showcase entries powering portfolio and resume</p>
+            </div>
+            <div class="dashboard-stat">
+              <p class="dashboard-stat__label">Experience</p>
+              <p class="dashboard-stat__value">{{ experience().length }}</p>
+              <p class="dashboard-stat__hint">Career items currently visible to visitors</p>
+            </div>
+            <div class="dashboard-stat">
+              <p class="dashboard-stat__label">Education</p>
+              <p class="dashboard-stat__value">{{ education().length }}</p>
+              <p class="dashboard-stat__hint">Educational background entries</p>
+            </div>
+            <div class="dashboard-stat">
+              <p class="dashboard-stat__label">Identity</p>
+              <p class="dashboard-stat__value truncate">{{ authService.user()?.firstName || 'Admin' }}</p>
+              <p class="dashboard-stat__hint">Active profile currently controlling this dashboard</p>
+            </div>
+          </section>
 
-        <section class="grid lg:grid-cols-2 gap-6">
-          <div class="admin-panel p-6 md:p-7">
-            <div class="admin-panel__header">
-              <div>
-                <p class="admin-panel__eyebrow">Profile Story</p>
-                <h2 class="admin-panel__title">About</h2>
+          <section class="grid lg:grid-cols-2 gap-6">
+            <div class="admin-panel p-6 md:p-7">
+              <div class="admin-panel__header">
+                <div>
+                  <p class="admin-panel__eyebrow">Profile Story</p>
+                  <h2 class="admin-panel__title">About</h2>
+                </div>
+                <span class="admin-panel__icon">✍️</span>
               </div>
-              <span class="admin-panel__icon">✍️</span>
-            </div>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Bio</label>
-                <textarea [(ngModel)]="aboutForm.bio" (ngModelChange)="clearValidationError('about.bio')" rows="4" class="w-full input-base" [class.input-error]="hasValidationError('about.bio')"></textarea>
-                @if (hasValidationError('about.bio')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['about.bio'] }}</p>
-                }
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Description</label>
-                <textarea [(ngModel)]="aboutForm.description" (ngModelChange)="clearValidationError('about.description')" rows="4" class="w-full input-base" [class.input-error]="hasValidationError('about.description')"></textarea>
-                @if (hasValidationError('about.description')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['about.description'] }}</p>
-                }
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Years of Experience</label>
-                <input [(ngModel)]="aboutForm.yearsExperience" (ngModelChange)="clearValidationError('about.yearsExperience')" type="number" class="w-full input-base" [class.input-error]="hasValidationError('about.yearsExperience')" />
-                @if (hasValidationError('about.yearsExperience')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['about.yearsExperience'] }}</p>
-                }
-              </div>
-              <button class="btn-primary" (click)="saveAbout()">Save About</button>
-            </div>
-          </div>
-
-          <div class="admin-panel p-6 md:p-7">
-            <div class="admin-panel__header">
-              <div>
-                <p class="admin-panel__eyebrow">Public Reach</p>
-                <h2 class="admin-panel__title">Contact & Social Links</h2>
-              </div>
-              <span class="admin-panel__icon">🔗</span>
-            </div>
-            <div class="grid md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Email</label>
-                <input [(ngModel)]="contactForm.email" (ngModelChange)="clearValidationError('contact.email')" type="email" class="w-full input-base" [class.input-error]="hasValidationError('contact.email')" />
-                @if (hasValidationError('contact.email')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.email'] }}</p>
-                }
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Phone</label>
-                <input [(ngModel)]="contactForm.phone" (ngModelChange)="clearValidationError('contact.phone')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.phone')" />
-                @if (hasValidationError('contact.phone')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.phone'] }}</p>
-                }
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Location</label>
-                <input [(ngModel)]="contactForm.location" (ngModelChange)="clearValidationError('contact.location')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.location')" />
-                @if (hasValidationError('contact.location')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.location'] }}</p>
-                }
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">GitHub</label>
-                <input [(ngModel)]="contactForm.github" (ngModelChange)="clearValidationError('contact.github')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.github')" />
-                @if (hasValidationError('contact.github')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.github'] }}</p>
-                }
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">LinkedIn</label>
-                <input [(ngModel)]="contactForm.linkedin" (ngModelChange)="clearValidationError('contact.linkedin')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.linkedin')" />
-                @if (hasValidationError('contact.linkedin')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.linkedin'] }}</p>
-                }
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Medium</label>
-                <input [(ngModel)]="contactForm.medium" (ngModelChange)="clearValidationError('contact.medium')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.medium')" />
-                @if (hasValidationError('contact.medium')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.medium'] }}</p>
-                }
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Tableau</label>
-                <input [(ngModel)]="contactForm.tableau" (ngModelChange)="clearValidationError('contact.tableau')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.tableau')" />
-                @if (hasValidationError('contact.tableau')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.tableau'] }}</p>
-                }
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">LeetCode</label>
-                <input [(ngModel)]="contactForm.leetcode" (ngModelChange)="clearValidationError('contact.leetcode')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.leetcode')" />
-                @if (hasValidationError('contact.leetcode')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.leetcode'] }}</p>
-                }
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Instagram</label>
-                <input [(ngModel)]="contactForm.instagram" (ngModelChange)="clearValidationError('contact.instagram')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.instagram')" />
-                @if (hasValidationError('contact.instagram')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.instagram'] }}</p>
-                }
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">YouTube</label>
-                <input [(ngModel)]="contactForm.youtube" (ngModelChange)="clearValidationError('contact.youtube')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.youtube')" />
-                @if (hasValidationError('contact.youtube')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.youtube'] }}</p>
-                }
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Portfolio Website</label>
-                <input [(ngModel)]="contactForm.portfolio" (ngModelChange)="clearValidationError('contact.portfolio')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.portfolio')" />
-                @if (hasValidationError('contact.portfolio')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.portfolio'] }}</p>
-                }
-              </div>
-              <div class="md:col-span-2 pt-2">
-                <button class="btn-primary" (click)="saveContact()">Save Contact</button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="grid lg:grid-cols-3 gap-6">
-          <div class="lg:col-span-2 admin-panel p-6 md:p-7">
-            <div class="admin-panel__header mb-4">
-              <div>
-                <p class="admin-panel__eyebrow">Capabilities</p>
-                <h2 class="admin-panel__title">Skills</h2>
-              </div>
-              <button class="btn-secondary" (click)="resetSkillForm()">New Skill</button>
-            </div>
-
-            <div class="overflow-x-auto rounded-2xl border border-gray-200/80 dark:border-white/10">
-              <table class="w-full text-sm">
-                <thead class="bg-gray-50 dark:bg-white/5">
-                  <tr class="text-left border-b border-gray-200 dark:border-dark-700">
-                    <th class="py-3 px-4">Name</th>
-                    <th class="py-3 px-4">Category</th>
-                    <th class="py-3 px-4">Level</th>
-                    <th class="py-3 px-4">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (skill of skills(); track skill.id) {
-                    <tr class="border-b border-gray-100 dark:border-dark-800 bg-white/70 dark:bg-transparent">
-                      <td class="py-3 px-4 font-medium">{{ skill.name }}</td>
-                      <td class="py-3 px-4 capitalize">{{ skill.category }}</td>
-                      <td class="py-3 px-4">{{ skill.level }}%</td>
-                      <td class="py-3 px-4 flex gap-2">
-                        <button class="btn-secondary !px-3 !py-2" (click)="editSkill(skill)">Edit</button>
-                        <button class="btn-secondary !px-3 !py-2 !text-red-600" (click)="deleteSkill(skill.id)">Delete</button>
-                      </td>
-                    </tr>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Bio</label>
+                  <textarea [(ngModel)]="aboutForm.bio" (ngModelChange)="clearValidationError('about.bio')" rows="4" class="w-full input-base" [class.input-error]="hasValidationError('about.bio')"></textarea>
+                  @if (hasValidationError('about.bio')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['about.bio'] }}</p>
                   }
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="admin-panel p-6 md:p-7">
-            <div class="admin-panel__header compact">
-              <div>
-                <p class="admin-panel__eyebrow">Editor</p>
-                <h3 class="admin-panel__title">{{ editingSkillId() ? 'Edit Skill' : 'Add Skill' }}</h3>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Description</label>
+                  <textarea [(ngModel)]="aboutForm.description" (ngModelChange)="clearValidationError('about.description')" rows="4" class="w-full input-base" [class.input-error]="hasValidationError('about.description')"></textarea>
+                  @if (hasValidationError('about.description')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['about.description'] }}</p>
+                  }
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Years of Experience</label>
+                  <input [(ngModel)]="aboutForm.yearsExperience" (ngModelChange)="clearValidationError('about.yearsExperience')" type="number" class="w-full input-base" [class.input-error]="hasValidationError('about.yearsExperience')" />
+                  @if (hasValidationError('about.yearsExperience')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['about.yearsExperience'] }}</p>
+                  }
+                </div>
+                <button class="btn-primary" (click)="saveAbout()">Save About</button>
               </div>
-            </div>
-            <div class="space-y-4">
-              <div>
-                <input [(ngModel)]="skillForm.name" (ngModelChange)="clearValidationError('skill.name')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('skill.name')" placeholder="Skill name" />
-                @if (hasValidationError('skill.name')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['skill.name'] }}</p>
-                }
-              </div>
-              <div>
-                <select [(ngModel)]="skillForm.category" (ngModelChange)="clearValidationError('skill.category')" class="w-full input-base" [class.input-error]="hasValidationError('skill.category')">
-                  <option value="frontend">Frontend</option>
-                  <option value="backend">Backend</option>
-                  <option value="database">Database</option>
-                  <option value="tools">Tools</option>
-                </select>
-                @if (hasValidationError('skill.category')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['skill.category'] }}</p>
-                }
-              </div>
-              <div>
-                <input [(ngModel)]="skillForm.level" (ngModelChange)="clearValidationError('skill.level')" type="number" class="w-full input-base" [class.input-error]="hasValidationError('skill.level')" placeholder="Level" />
-                @if (hasValidationError('skill.level')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['skill.level'] }}</p>
-                }
-              </div>
-              <button class="btn-primary w-full" (click)="saveSkill()">{{ editingSkillId() ? 'Update Skill' : 'Add Skill' }}</button>
-            </div>
-          </div>
-        </section>
-
-        <section class="grid lg:grid-cols-3 gap-6">
-          <div class="lg:col-span-2 admin-panel p-6 md:p-7">
-            <div class="admin-panel__header mb-4">
-              <div>
-                <p class="admin-panel__eyebrow">Showcase</p>
-                <h2 class="admin-panel__title">Projects</h2>
-              </div>
-              <button class="btn-secondary" (click)="resetProjectForm()">New Project</button>
             </div>
 
-            <div class="space-y-4">
-              @for (project of projects(); track project.id) {
-                <div class="rounded-2xl border border-gray-200/90 dark:border-white/10 bg-white/70 dark:bg-white/5 p-5 shadow-sm">
-                  <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h3 class="font-semibold text-dark-900 dark:text-white">{{ project.title }}</h3>
-                      <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ project.description }}</p>
-                    </div>
-                    <div class="flex gap-2">
-                      <button class="btn-secondary !px-3 !py-2" (click)="editProject(project)">Edit</button>
-                      <button class="btn-secondary !px-3 !py-2 !text-red-600" (click)="deleteProject(project.id)">Delete</button>
+            <div class="admin-panel p-6 md:p-7">
+              <div class="admin-panel__header">
+                <div>
+                  <p class="admin-panel__eyebrow">Public Reach</p>
+                  <h2 class="admin-panel__title">Contact & Social Links</h2>
+                </div>
+                <span class="admin-panel__icon">🔗</span>
+              </div>
+              <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Email</label>
+                  <input [(ngModel)]="contactForm.email" (ngModelChange)="clearValidationError('contact.email')" type="email" class="w-full input-base" [class.input-error]="hasValidationError('contact.email')" />
+                  @if (hasValidationError('contact.email')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.email'] }}</p>
+                  }
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Phone</label>
+                  <input [(ngModel)]="contactForm.phone" (ngModelChange)="clearValidationError('contact.phone')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.phone')" />
+                  @if (hasValidationError('contact.phone')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.phone'] }}</p>
+                  }
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Location</label>
+                  <input [(ngModel)]="contactForm.location" (ngModelChange)="clearValidationError('contact.location')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.location')" />
+                  @if (hasValidationError('contact.location')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.location'] }}</p>
+                  }
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">GitHub</label>
+                  <input [(ngModel)]="contactForm.github" (ngModelChange)="clearValidationError('contact.github')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.github')" />
+                  @if (hasValidationError('contact.github')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.github'] }}</p>
+                  }
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">LinkedIn</label>
+                  <input [(ngModel)]="contactForm.linkedin" (ngModelChange)="clearValidationError('contact.linkedin')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.linkedin')" />
+                  @if (hasValidationError('contact.linkedin')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.linkedin'] }}</p>
+                  }
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Medium</label>
+                  <input [(ngModel)]="contactForm.medium" (ngModelChange)="clearValidationError('contact.medium')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.medium')" />
+                  @if (hasValidationError('contact.medium')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.medium'] }}</p>
+                  }
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Tableau</label>
+                  <input [(ngModel)]="contactForm.tableau" (ngModelChange)="clearValidationError('contact.tableau')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.tableau')" />
+                  @if (hasValidationError('contact.tableau')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.tableau'] }}</p>
+                  }
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">LeetCode</label>
+                  <input [(ngModel)]="contactForm.leetcode" (ngModelChange)="clearValidationError('contact.leetcode')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.leetcode')" />
+                  @if (hasValidationError('contact.leetcode')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.leetcode'] }}</p>
+                  }
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Instagram</label>
+                  <input [(ngModel)]="contactForm.instagram" (ngModelChange)="clearValidationError('contact.instagram')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.instagram')" />
+                  @if (hasValidationError('contact.instagram')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.instagram'] }}</p>
+                  }
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">YouTube</label>
+                  <input [(ngModel)]="contactForm.youtube" (ngModelChange)="clearValidationError('contact.youtube')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.youtube')" />
+                  @if (hasValidationError('contact.youtube')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.youtube'] }}</p>
+                  }
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Portfolio Website</label>
+                  <input [(ngModel)]="contactForm.portfolio" (ngModelChange)="clearValidationError('contact.portfolio')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.portfolio')" />
+                  @if (hasValidationError('contact.portfolio')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.portfolio'] }}</p>
+                  }
+                </div>
+                <div class="md:col-span-2 pt-2">
+                  <button class="btn-primary" (click)="saveContact()">Save Contact</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="grid lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 admin-panel p-6 md:p-7">
+              <div class="admin-panel__header mb-4">
+                <div>
+                  <p class="admin-panel__eyebrow">Capabilities</p>
+                  <h2 class="admin-panel__title">Skills</h2>
+                </div>
+                <button class="btn-secondary" (click)="resetSkillForm()">New Skill</button>
+              </div>
+
+              <div class="overflow-x-auto rounded-2xl border border-gray-200/80 dark:border-white/10">
+                <table class="w-full text-sm">
+                  <thead class="bg-gray-50 dark:bg-white/5">
+                    <tr class="text-left border-b border-gray-200 dark:border-dark-700">
+                      <th class="py-3 px-4">Name</th>
+                      <th class="py-3 px-4">Category</th>
+                      <th class="py-3 px-4">Level</th>
+                      <th class="py-3 px-4">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (skill of skills(); track skill.id) {
+                      <tr class="border-b border-gray-100 dark:border-dark-800 bg-white/70 dark:bg-transparent">
+                        <td class="py-3 px-4 font-medium">{{ skill.name }}</td>
+                        <td class="py-3 px-4 capitalize">{{ skill.category }}</td>
+                        <td class="py-3 px-4">{{ skill.level }}%</td>
+                        <td class="py-3 px-4 flex gap-2">
+                          <button class="btn-secondary !px-3 !py-2" (click)="editSkill(skill)">Edit</button>
+                          <button class="btn-secondary !px-3 !py-2 !text-red-600" (click)="deleteSkill(skill.id)">Delete</button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="admin-panel p-6 md:p-7">
+              <div class="admin-panel__header compact">
+                <div>
+                  <p class="admin-panel__eyebrow">Editor</p>
+                  <h3 class="admin-panel__title">{{ editingSkillId() ? 'Edit Skill' : 'Add Skill' }}</h3>
+                </div>
+              </div>
+              <div class="space-y-4">
+                <div>
+                  <input [(ngModel)]="skillForm.name" (ngModelChange)="clearValidationError('skill.name')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('skill.name')" placeholder="Skill name" />
+                  @if (hasValidationError('skill.name')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['skill.name'] }}</p>
+                  }
+                </div>
+                <div>
+                  <select [(ngModel)]="skillForm.category" (ngModelChange)="clearValidationError('skill.category')" class="w-full input-base" [class.input-error]="hasValidationError('skill.category')">
+                    <option value="frontend">Frontend</option>
+                    <option value="backend">Backend</option>
+                    <option value="database">Database</option>
+                    <option value="tools">Tools</option>
+                  </select>
+                  @if (hasValidationError('skill.category')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['skill.category'] }}</p>
+                  }
+                </div>
+                <div>
+                  <input [(ngModel)]="skillForm.level" (ngModelChange)="clearValidationError('skill.level')" type="number" class="w-full input-base" [class.input-error]="hasValidationError('skill.level')" placeholder="Level" />
+                  @if (hasValidationError('skill.level')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['skill.level'] }}</p>
+                  }
+                </div>
+                <button class="btn-primary w-full" (click)="saveSkill()">{{ editingSkillId() ? 'Update Skill' : 'Add Skill' }}</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="grid lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 admin-panel p-6 md:p-7">
+              <div class="admin-panel__header mb-4">
+                <div>
+                  <p class="admin-panel__eyebrow">Showcase</p>
+                  <h2 class="admin-panel__title">Projects</h2>
+                </div>
+                <button class="btn-secondary" (click)="resetProjectForm()">New Project</button>
+              </div>
+
+              <div class="space-y-4">
+                @for (project of projects(); track project.id) {
+                  <div class="rounded-2xl border border-gray-200/90 dark:border-white/10 bg-white/70 dark:bg-white/5 p-5 shadow-sm">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h3 class="font-semibold text-dark-900 dark:text-white">{{ project.title }}</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ project.description }}</p>
+                      </div>
+                      <div class="flex gap-2">
+                        <button class="btn-secondary !px-3 !py-2" (click)="editProject(project)">Edit</button>
+                        <button class="btn-secondary !px-3 !py-2 !text-red-600" (click)="deleteProject(project.id)">Delete</button>
+                      </div>
                     </div>
                   </div>
+                }
+              </div>
+            </div>
+
+            <div class="admin-panel p-6 md:p-7">
+              <div class="admin-panel__header compact">
+                <div>
+                  <p class="admin-panel__eyebrow">Editor</p>
+                  <h3 class="admin-panel__title">{{ editingProjectId() ? 'Edit Project' : 'Add Project' }}</h3>
                 </div>
-              }
-            </div>
-          </div>
-
-          <div class="admin-panel p-6 md:p-7">
-            <div class="admin-panel__header compact">
-              <div>
-                <p class="admin-panel__eyebrow">Editor</p>
-                <h3 class="admin-panel__title">{{ editingProjectId() ? 'Edit Project' : 'Add Project' }}</h3>
               </div>
-            </div>
-            <div class="space-y-4">
-              <div>
-                <input [(ngModel)]="projectForm.title" (ngModelChange)="clearValidationError('project.title')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('project.title')" placeholder="Title" />
-                @if (hasValidationError('project.title')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['project.title'] }}</p>
-                }
-              </div>
-              <div>
-                <textarea [(ngModel)]="projectForm.description" (ngModelChange)="clearValidationError('project.description')" rows="4" class="w-full input-base" [class.input-error]="hasValidationError('project.description')" placeholder="Description"></textarea>
-                @if (hasValidationError('project.description')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['project.description'] }}</p>
-                }
-              </div>
-              <div>
-                <input [(ngModel)]="projectForm.image" (ngModelChange)="clearValidationError('project.image')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('project.image')" placeholder="Image URL" />
-                @if (hasValidationError('project.image')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['project.image'] }}</p>
-                }
-              </div>
-              <div>
-                <input [(ngModel)]="projectForm.liveLink" (ngModelChange)="clearValidationError('project.liveLink')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('project.liveLink')" placeholder="Live link" />
-                @if (hasValidationError('project.liveLink')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['project.liveLink'] }}</p>
-                }
-              </div>
-              <div>
-                <input [(ngModel)]="projectForm.githubLink" (ngModelChange)="clearValidationError('project.githubLink')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('project.githubLink')" placeholder="GitHub link" />
-                @if (hasValidationError('project.githubLink')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['project.githubLink'] }}</p>
-                }
-              </div>
-              <div>
-                <input [(ngModel)]="projectForm.technologies" (ngModelChange)="clearValidationError('project.technologies')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('project.technologies')" placeholder="Technologies separated by comma" />
-                @if (hasValidationError('project.technologies')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['project.technologies'] }}</p>
-                }
-              </div>
-              <label class="flex items-center gap-3 text-sm text-dark-900 dark:text-white">
-                <input [(ngModel)]="projectForm.featured" type="checkbox" />
-                Featured project
-              </label>
-              <button class="btn-primary w-full" (click)="saveProject()">{{ editingProjectId() ? 'Update Project' : 'Add Project' }}</button>
-            </div>
-          </div>
-        </section>
-
-        <section class="grid lg:grid-cols-3 gap-6">
-          <div class="lg:col-span-2 admin-panel p-6 md:p-7">
-            <div class="admin-panel__header mb-4">
-              <div>
-                <p class="admin-panel__eyebrow">Career Timeline</p>
-                <h2 class="admin-panel__title">Experience</h2>
-              </div>
-              <button class="btn-secondary" (click)="resetExperienceForm()">New Experience</button>
-            </div>
-
-            <div class="space-y-4">
-              @for (item of experience(); track item.id) {
-                <div class="rounded-2xl border border-gray-200/90 dark:border-white/10 bg-white/70 dark:bg-white/5 p-5 shadow-sm">
-                  <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h3 class="font-semibold text-dark-900 dark:text-white">{{ item.position }} at {{ item.company }}</h3>
-                      <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ item.duration }}</p>
-                      <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">{{ item.description }}</p>
-                    </div>
-                    <div class="flex gap-2">
-                      <button class="btn-secondary !px-3 !py-2" (click)="editExperience(item)">Edit</button>
-                      <button class="btn-secondary !px-3 !py-2 !text-red-600" (click)="deleteExperience(item.id)">Delete</button>
-                    </div>
-                  </div>
+              <div class="space-y-4">
+                <div>
+                  <input [(ngModel)]="projectForm.title" (ngModelChange)="clearValidationError('project.title')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('project.title')" placeholder="Title" />
+                  @if (hasValidationError('project.title')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['project.title'] }}</p>
+                  }
                 </div>
-              }
+                <div>
+                  <textarea [(ngModel)]="projectForm.description" (ngModelChange)="clearValidationError('project.description')" rows="4" class="w-full input-base" [class.input-error]="hasValidationError('project.description')" placeholder="Description"></textarea>
+                  @if (hasValidationError('project.description')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['project.description'] }}</p>
+                  }
+                </div>
+                <div>
+                  <input [(ngModel)]="projectForm.image" (ngModelChange)="clearValidationError('project.image')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('project.image')" placeholder="Image URL" />
+                  @if (hasValidationError('project.image')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['project.image'] }}</p>
+                  }
+                </div>
+                <div>
+                  <input [(ngModel)]="projectForm.liveLink" (ngModelChange)="clearValidationError('project.liveLink')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('project.liveLink')" placeholder="Live link" />
+                  @if (hasValidationError('project.liveLink')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['project.liveLink'] }}</p>
+                  }
+                </div>
+                <div>
+                  <input [(ngModel)]="projectForm.githubLink" (ngModelChange)="clearValidationError('project.githubLink')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('project.githubLink')" placeholder="GitHub link" />
+                  @if (hasValidationError('project.githubLink')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['project.githubLink'] }}</p>
+                  }
+                </div>
+                <div>
+                  <input [(ngModel)]="projectForm.technologies" (ngModelChange)="clearValidationError('project.technologies')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('project.technologies')" placeholder="Technologies separated by comma" />
+                  @if (hasValidationError('project.technologies')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['project.technologies'] }}</p>
+                  }
+                </div>
+                <label class="flex items-center gap-3 text-sm text-dark-900 dark:text-white">
+                  <input [(ngModel)]="projectForm.featured" type="checkbox" />
+                  Featured project
+                </label>
+                <button class="btn-primary w-full" (click)="saveProject()">{{ editingProjectId() ? 'Update Project' : 'Add Project' }}</button>
+              </div>
             </div>
-          </div>
+          </section>
 
-          <div class="admin-panel p-6 md:p-7">
-            <div class="admin-panel__header compact">
-              <div>
-                <p class="admin-panel__eyebrow">Editor</p>
-                <h3 class="admin-panel__title">{{ editingExperienceId() ? 'Edit Experience' : 'Add Experience' }}</h3>
+          <section class="grid lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 admin-panel p-6 md:p-7">
+              <div class="admin-panel__header mb-4">
+                <div>
+                  <p class="admin-panel__eyebrow">Career Timeline</p>
+                  <h2 class="admin-panel__title">Experience</h2>
+                </div>
+                <button class="btn-secondary" (click)="resetExperienceForm()">New Experience</button>
               </div>
-            </div>
-            <div class="space-y-4">
-              <div>
-                <input [(ngModel)]="experienceForm.company" (ngModelChange)="clearValidationError('experience.company')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('experience.company')" placeholder="Company" />
-                @if (hasValidationError('experience.company')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['experience.company'] }}</p>
-                }
-              </div>
-              <div>
-                <input [(ngModel)]="experienceForm.position" (ngModelChange)="clearValidationError('experience.position')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('experience.position')" placeholder="Position" />
-                @if (hasValidationError('experience.position')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['experience.position'] }}</p>
-                }
-              </div>
-              <div>
-                <input [(ngModel)]="experienceForm.duration" (ngModelChange)="clearValidationError('experience.duration')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('experience.duration')" placeholder="Duration" />
-                @if (hasValidationError('experience.duration')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['experience.duration'] }}</p>
-                }
-              </div>
-              <div>
-                <textarea [(ngModel)]="experienceForm.description" (ngModelChange)="clearValidationError('experience.description')" rows="4" class="w-full input-base" [class.input-error]="hasValidationError('experience.description')" placeholder="Description"></textarea>
-                @if (hasValidationError('experience.description')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['experience.description'] }}</p>
-                }
-              </div>
-              <div>
-                <input [(ngModel)]="experienceForm.startDate" (ngModelChange)="clearValidationError('experience.startDate')" type="date" class="w-full input-base" [class.input-error]="hasValidationError('experience.startDate')" />
-                @if (hasValidationError('experience.startDate')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['experience.startDate'] }}</p>
-                }
-              </div>
-              <div>
-                <input [(ngModel)]="experienceForm.endDate" (ngModelChange)="clearValidationError('experience.endDate')" type="date" class="w-full input-base" [class.input-error]="hasValidationError('experience.endDate')" />
-                @if (hasValidationError('experience.endDate')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['experience.endDate'] }}</p>
-                }
-              </div>
-              <button class="btn-primary w-full" (click)="saveExperience()">{{ editingExperienceId() ? 'Update Experience' : 'Add Experience' }}</button>
-            </div>
-          </div>
-        </section>
 
-        <section class="grid lg:grid-cols-3 gap-6">
-          <div class="lg:col-span-2 admin-panel p-6 md:p-7">
-            <div class="admin-panel__header mb-4">
-              <div>
-                <p class="admin-panel__eyebrow">Academic Background</p>
-                <h2 class="admin-panel__title">Education</h2>
-              </div>
-              <button class="btn-secondary" (click)="resetEducationForm()">New Education</button>
-            </div>
-
-            <div class="space-y-4">
-              @for (item of education(); track item.id) {
-                <div class="rounded-2xl border border-gray-200/90 dark:border-white/10 bg-white/70 dark:bg-white/5 p-5 shadow-sm">
-                  <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h3 class="font-semibold text-dark-900 dark:text-white">{{ item.degree }} at {{ item.institution }}</h3>
-                      <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ item.field }} {{ item.grade ? '• ' + item.grade : '' }}</p>
-                      <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ item.startDate | date:'MMM yyyy' }} - {{ item.isCurrent ? 'Present' : ((item.endDate ?? '') | date:'MMM yyyy') }}</p>
-                      @if (item.description) {
+              <div class="space-y-4">
+                @for (item of experience(); track item.id) {
+                  <div class="rounded-2xl border border-gray-200/90 dark:border-white/10 bg-white/70 dark:bg-white/5 p-5 shadow-sm">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h3 class="font-semibold text-dark-900 dark:text-white">{{ item.position }} at {{ item.company }}</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ item.duration }}</p>
                         <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">{{ item.description }}</p>
-                      }
-                    </div>
-                    <div class="flex gap-2">
-                      <button class="btn-secondary !px-3 !py-2" (click)="editEducation(item)">Edit</button>
-                      <button class="btn-secondary !px-3 !py-2 !text-red-600" (click)="deleteEducation(item.id)">Delete</button>
+                      </div>
+                      <div class="flex gap-2">
+                        <button class="btn-secondary !px-3 !py-2" (click)="editExperience(item)">Edit</button>
+                        <button class="btn-secondary !px-3 !py-2 !text-red-600" (click)="deleteExperience(item.id)">Delete</button>
+                      </div>
                     </div>
                   </div>
+                }
+              </div>
+            </div>
+
+            <div class="admin-panel p-6 md:p-7">
+              <div class="admin-panel__header compact">
+                <div>
+                  <p class="admin-panel__eyebrow">Editor</p>
+                  <h3 class="admin-panel__title">{{ editingExperienceId() ? 'Edit Experience' : 'Add Experience' }}</h3>
                 </div>
-              }
+              </div>
+              <div class="space-y-4">
+                <div>
+                  <input [(ngModel)]="experienceForm.company" (ngModelChange)="clearValidationError('experience.company')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('experience.company')" placeholder="Company" />
+                  @if (hasValidationError('experience.company')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['experience.company'] }}</p>
+                  }
+                </div>
+                <div>
+                  <input [(ngModel)]="experienceForm.position" (ngModelChange)="clearValidationError('experience.position')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('experience.position')" placeholder="Position" />
+                  @if (hasValidationError('experience.position')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['experience.position'] }}</p>
+                  }
+                </div>
+                <div>
+                  <input [(ngModel)]="experienceForm.duration" (ngModelChange)="clearValidationError('experience.duration')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('experience.duration')" placeholder="Duration" />
+                  @if (hasValidationError('experience.duration')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['experience.duration'] }}</p>
+                  }
+                </div>
+                <div>
+                  <textarea [(ngModel)]="experienceForm.description" (ngModelChange)="clearValidationError('experience.description')" rows="4" class="w-full input-base" [class.input-error]="hasValidationError('experience.description')" placeholder="Description"></textarea>
+                  @if (hasValidationError('experience.description')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['experience.description'] }}</p>
+                  }
+                </div>
+                <div>
+                  <input [(ngModel)]="experienceForm.startDate" (ngModelChange)="clearValidationError('experience.startDate')" type="date" class="w-full input-base" [class.input-error]="hasValidationError('experience.startDate')" />
+                  @if (hasValidationError('experience.startDate')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['experience.startDate'] }}</p>
+                  }
+                </div>
+                <div>
+                  <input [(ngModel)]="experienceForm.endDate" (ngModelChange)="clearValidationError('experience.endDate')" type="date" class="w-full input-base" [class.input-error]="hasValidationError('experience.endDate')" />
+                  @if (hasValidationError('experience.endDate')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['experience.endDate'] }}</p>
+                  }
+                </div>
+                <button class="btn-primary w-full" (click)="saveExperience()">{{ editingExperienceId() ? 'Update Experience' : 'Add Experience' }}</button>
+              </div>
             </div>
-          </div>
+          </section>
 
-          <div class="admin-panel p-6 md:p-7">
-            <div class="admin-panel__header compact">
-              <div>
-                <p class="admin-panel__eyebrow">Editor</p>
-                <h3 class="admin-panel__title">{{ editingEducationId() ? 'Edit Education' : 'Add Education' }}</h3>
+          <section class="grid lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 admin-panel p-6 md:p-7">
+              <div class="admin-panel__header mb-4">
+                <div>
+                  <p class="admin-panel__eyebrow">Academic Background</p>
+                  <h2 class="admin-panel__title">Education</h2>
+                </div>
+                <button class="btn-secondary" (click)="resetEducationForm()">New Education</button>
               </div>
-            </div>
-            <div class="space-y-4">
-              <div>
-                <input [(ngModel)]="educationForm.institution" (ngModelChange)="clearValidationError('education.institution')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('education.institution')" placeholder="Institution" />
-                @if (hasValidationError('education.institution')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['education.institution'] }}</p>
-                }
-              </div>
-              <div>
-                <input [(ngModel)]="educationForm.degree" (ngModelChange)="clearValidationError('education.degree')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('education.degree')" placeholder="Degree" />
-                @if (hasValidationError('education.degree')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['education.degree'] }}</p>
-                }
-              </div>
-              <div>
-                <input [(ngModel)]="educationForm.field" type="text" class="w-full input-base" placeholder="Field of study" />
-              </div>
-              <div>
-                <input [(ngModel)]="educationForm.grade" type="text" class="w-full input-base" placeholder="Grade/GPA" />
-              </div>
-              <div>
-                <input [(ngModel)]="educationForm.startDate" (ngModelChange)="clearValidationError('education.startDate')" type="date" class="w-full input-base" [class.input-error]="hasValidationError('education.startDate')" />
-                @if (hasValidationError('education.startDate')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['education.startDate'] }}</p>
-                }
-              </div>
-              <div>
-                <input [(ngModel)]="educationForm.endDate" type="date" class="w-full input-base" />
-              </div>
-              <label class="flex items-center gap-3 text-sm text-dark-900 dark:text-white">
-                <input [(ngModel)]="educationForm.isCurrent" type="checkbox" />
-                Currently studying
-              </label>
-              <div>
-                <textarea [(ngModel)]="educationForm.description" rows="4" class="w-full input-base" placeholder="Description"></textarea>
-              </div>
-              <button class="btn-primary w-full" (click)="saveEducation()">{{ editingEducationId() ? 'Update Education' : 'Add Education' }}</button>
-            </div>
-          </div>
-        </section>
 
-        <section class="grid lg:grid-cols-3 gap-6">
-          <div class="lg:col-span-2 admin-panel p-6 md:p-7">
+              <div class="space-y-4">
+                @for (item of education(); track item.id) {
+                  <div class="rounded-2xl border border-gray-200/90 dark:border-white/10 bg-white/70 dark:bg-white/5 p-5 shadow-sm">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h3 class="font-semibold text-dark-900 dark:text-white">{{ item.degree }} at {{ item.institution }}</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ item.field }} {{ item.grade ? '• ' + item.grade : '' }}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ item.startDate | date:'MMM yyyy' }} - {{ item.isCurrent ? 'Present' : ((item.endDate ?? '') | date:'MMM yyyy') }}</p>
+                        @if (item.description) {
+                          <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">{{ item.description }}</p>
+                        }
+                      </div>
+                      <div class="flex gap-2">
+                        <button class="btn-secondary !px-3 !py-2" (click)="editEducation(item)">Edit</button>
+                        <button class="btn-secondary !px-3 !py-2 !text-red-600" (click)="deleteEducation(item.id)">Delete</button>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="admin-panel p-6 md:p-7">
+              <div class="admin-panel__header compact">
+                <div>
+                  <p class="admin-panel__eyebrow">Editor</p>
+                  <h3 class="admin-panel__title">{{ editingEducationId() ? 'Edit Education' : 'Add Education' }}</h3>
+                </div>
+              </div>
+              <div class="space-y-4">
+                <div>
+                  <input [(ngModel)]="educationForm.institution" (ngModelChange)="clearValidationError('education.institution')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('education.institution')" placeholder="Institution" />
+                  @if (hasValidationError('education.institution')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['education.institution'] }}</p>
+                  }
+                </div>
+                <div>
+                  <input [(ngModel)]="educationForm.degree" (ngModelChange)="clearValidationError('education.degree')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('education.degree')" placeholder="Degree" />
+                  @if (hasValidationError('education.degree')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['education.degree'] }}</p>
+                  }
+                </div>
+                <div>
+                  <input [(ngModel)]="educationForm.field" type="text" class="w-full input-base" placeholder="Field of study" />
+                </div>
+                <div>
+                  <input [(ngModel)]="educationForm.grade" type="text" class="w-full input-base" placeholder="Grade/GPA" />
+                </div>
+                <div>
+                  <input [(ngModel)]="educationForm.startDate" (ngModelChange)="clearValidationError('education.startDate')" type="date" class="w-full input-base" [class.input-error]="hasValidationError('education.startDate')" />
+                  @if (hasValidationError('education.startDate')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['education.startDate'] }}</p>
+                  }
+                </div>
+                <div>
+                  <input [(ngModel)]="educationForm.endDate" type="date" class="w-full input-base" />
+                </div>
+                <label class="flex items-center gap-3 text-sm text-dark-900 dark:text-white">
+                  <input [(ngModel)]="educationForm.isCurrent" type="checkbox" />
+                  Currently studying
+                </label>
+                <div>
+                  <textarea [(ngModel)]="educationForm.description" rows="4" class="w-full input-base" placeholder="Description"></textarea>
+                </div>
+                <button class="btn-primary w-full" (click)="saveEducation()">{{ editingEducationId() ? 'Update Education' : 'Add Education' }}</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="grid lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 admin-panel p-6 md:p-7">
+              <div class="admin-panel__header mb-4">
+                <div>
+                  <p class="admin-panel__eyebrow">Online Presence</p>
+                  <h2 class="admin-panel__title">Social Links</h2>
+                </div>
+                <button class="btn-secondary" (click)="resetSocialLinkForm()">New Link</button>
+              </div>
+
+              <div class="space-y-4">
+                @for (link of socialLinks(); track link.id) {
+                  <div class="rounded-2xl border border-gray-200/90 dark:border-white/10 bg-white/70 dark:bg-white/5 p-5 shadow-sm">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h3 class="font-semibold text-dark-900 dark:text-white capitalize">{{ link.platform }}</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ link.url }}</p>
+                        @if (link.username) {
+                          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ link.username }}</p>
+                        }
+                      </div>
+                      <div class="flex gap-2">
+                        <button class="btn-secondary !px-3 !py-2" (click)="editSocialLink(link)">Edit</button>
+                        <button class="btn-secondary !px-3 !py-2 !text-red-600" (click)="deleteSocialLink(link.id)">Delete</button>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="admin-panel p-6 md:p-7">
+              <div class="admin-panel__header compact">
+                <div>
+                  <p class="admin-panel__eyebrow">Editor</p>
+                  <h3 class="admin-panel__title">{{ editingSocialLinkId() ? 'Edit Link' : 'Add Link' }}</h3>
+                </div>
+              </div>
+              <div class="space-y-4">
+                <div>
+                  <select [(ngModel)]="socialLinkForm.platform" (ngModelChange)="clearValidationError('socialLink.platform')" class="w-full input-base" [class.input-error]="hasValidationError('socialLink.platform')">
+                    <option value="">Select Platform</option>
+                    <option value="github">GitHub</option>
+                    <option value="linkedin">LinkedIn</option>
+                    <option value="twitter">Twitter</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="facebook">Facebook</option>
+                    <option value="youtube">YouTube</option>
+                    <option value="medium">Medium</option>
+                    <option value="dev">Dev.to</option>
+                    <option value="stackoverflow">Stack Overflow</option>
+                    <option value="behance">Behance</option>
+                    <option value="dribbble">Dribbble</option>
+                    <option value="website">Website</option>
+                  </select>
+                  @if (hasValidationError('socialLink.platform')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['socialLink.platform'] }}</p>
+                  }
+                </div>
+                <div>
+                  <input [(ngModel)]="socialLinkForm.url" (ngModelChange)="clearValidationError('socialLink.url')" type="url" class="w-full input-base" [class.input-error]="hasValidationError('socialLink.url')" placeholder="https://..." />
+                  @if (hasValidationError('socialLink.url')) {
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['socialLink.url'] }}</p>
+                  }
+                </div>
+                <div>
+                  <input [(ngModel)]="socialLinkForm.username" type="text" class="w-full input-base" placeholder="Username (optional)" />
+                </div>
+                <button class="btn-primary w-full" (click)="saveSocialLink()">{{ editingSocialLinkId() ? 'Update Link' : 'Add Link' }}</button>
+              </div>
+            </div>
+          </section>
+        }
+
+        <!-- All Users Tab -->
+        @if (currentTab() === 'all-users') {
+          <section class="admin-panel p-6 md:p-7">
             <div class="admin-panel__header mb-4">
               <div>
-                <p class="admin-panel__eyebrow">Online Presence</p>
-                <h2 class="admin-panel__title">Social Links</h2>
+                <p class="admin-panel__eyebrow">User Management</p>
+                <h2 class="admin-panel__title">All Portfolio Users</h2>
               </div>
-              <button class="btn-secondary" (click)="resetSocialLinkForm()">New Link</button>
+              <button class="btn-secondary" (click)="loadAllUsers()">↻ Refresh Users</button>
+            </div>
+
+            @if (isLoadingUsers()) {
+              <div class="text-center py-8 text-gray-500 dark:text-gray-400">Loading users...</div>
+            } @else if (allUsers().length === 0) {
+              <div class="text-center py-8 text-gray-500 dark:text-gray-400">No users found</div>
+            } @else {
+              <div class="overflow-x-auto rounded-2xl border border-gray-200/80 dark:border-white/10">
+                <table class="w-full text-sm">
+                  <thead class="bg-gray-50 dark:bg-white/5">
+                    <tr class="text-left border-b border-gray-200 dark:border-dark-700">
+                      <th class="py-3 px-4">Name</th>
+                      <th class="py-3 px-4">Email</th>
+                      <th class="py-3 px-4">Role</th>
+                      <th class="py-3 px-4">Portfolio</th>
+                      <th class="py-3 px-4">Status</th>
+                      <th class="py-3 px-4">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (user of allUsers(); track user.id) {
+                      <tr class="border-b border-gray-100 dark:border-dark-800 bg-white/70 dark:bg-transparent">
+                        <td class="py-3 px-4 font-medium">{{ user.firstName || '' }} {{ user.lastName || '' }}</td>
+                        <td class="py-3 px-4">{{ user.email }}</td>
+                        <td class="py-3 px-4 capitalize">{{ user.role }}</td>
+                        <td class="py-3 px-4">
+                          @if (user.portfolio) {
+                            <span class="text-primary-600">{{ user.portfolio.title || user.portfolio.slug }}</span>
+                          } @else {
+                            <span class="text-gray-400">No portfolio</span>
+                          }
+                        </td>
+                        <td class="py-3 px-4">
+                          @if (user.portfolio?.isPublic) {
+                            <span class="badge-success">Public</span>
+                          } @else {
+                            <span class="badge-warning">Private</span>
+                          }
+                        </td>
+                        <td class="py-3 px-4">
+                          <button class="btn-secondary !px-3 !py-2" (click)="viewUserPortfolio(user.id)">View</button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </section>
+        }
+
+        <!-- Live Updates Tab -->
+        @if (currentTab() === 'live-updates') {
+          <section class="admin-panel p-6 md:p-7">
+            <div class="admin-panel__header mb-4">
+              <div>
+                <p class="admin-panel__eyebrow">Real-time</p>
+                <h2 class="admin-panel__title">Live Updates</h2>
+              </div>
+              <button class="btn-secondary" (click)="refresh()">↻ Refresh</button>
             </div>
 
             <div class="space-y-4">
-              @for (link of socialLinks(); track link.id) {
-                <div class="rounded-2xl border border-gray-200/90 dark:border-white/10 bg-white/70 dark:bg-white/5 p-5 shadow-sm">
-                  <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h3 class="font-semibold text-dark-900 dark:text-white capitalize">{{ link.platform }}</h3>
-                      <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ link.url }}</p>
-                      @if (link.username) {
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ link.username }}</p>
-                      }
-                    </div>
-                    <div class="flex gap-2">
-                      <button class="btn-secondary !px-3 !py-2" (click)="editSocialLink(link)">Edit</button>
-                      <button class="btn-secondary !px-3 !py-2 !text-red-600" (click)="deleteSocialLink(link.id)">Delete</button>
-                    </div>
+              <div class="rounded-xl border border-gray-200/80 dark:border-white/10 bg-white/70 dark:bg-white/5 p-4">
+                <h3 class="font-semibold text-dark-900 dark:text-white mb-2">📊 Portfolio Statistics</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+                  <div class="text-center p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                    <p class="text-2xl font-bold text-primary-600">{{ skills().length }}</p>
+                    <p class="text-xs text-gray-500">Skills</p>
+                  </div>
+                  <div class="text-center p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                    <p class="text-2xl font-bold text-primary-600">{{ projects().length }}</p>
+                    <p class="text-xs text-gray-500">Projects</p>
+                  </div>
+                  <div class="text-center p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                    <p class="text-2xl font-bold text-primary-600">{{ experience().length }}</p>
+                    <p class="text-xs text-gray-500">Experience</p>
+                  </div>
+                  <div class="text-center p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                    <p class="text-2xl font-bold text-primary-600">{{ education().length }}</p>
+                    <p class="text-xs text-gray-500">Education</p>
                   </div>
                 </div>
-              }
-            </div>
-          </div>
+              </div>
 
-          <div class="admin-panel p-6 md:p-7">
-            <div class="admin-panel__header compact">
-              <div>
-                <p class="admin-panel__eyebrow">Editor</p>
-                <h3 class="admin-panel__title">{{ editingSocialLinkId() ? 'Edit Link' : 'Add Link' }}</h3>
+              <div class="rounded-xl border border-gray-200/80 dark:border-white/10 bg-white/70 dark:bg-white/5 p-4">
+                <h3 class="font-semibold text-dark-900 dark:text-white mb-2">🔗 Recent Activity</h3>
+                <div class="space-y-2 mt-3">
+                  <div class="flex items-center gap-3 text-sm">
+                    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                    <span class="text-gray-600 dark:text-gray-400">Portfolio data loaded successfully</span>
+                  </div>
+                  <div class="flex items-center gap-3 text-sm">
+                    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                    <span class="text-gray-600 dark:text-gray-400">Theme settings available</span>
+                  </div>
+                  <div class="flex items-center gap-3 text-sm">
+                    <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
+                    <span class="text-gray-500 dark:text-gray-400">All systems operational</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="rounded-xl border border-gray-200/80 dark:border-white/10 bg-white/70 dark:bg-white/5 p-4">
+                <h3 class="font-semibold text-dark-900 dark:text-white mb-2">⚡ Quick Actions</h3>
+                <div class="flex flex-wrap gap-3 mt-3">
+                  <button class="btn-secondary" (click)="refresh()">Refresh Data</button>
+                  <button class="btn-secondary" (click)="exportData()">Export Data</button>
+                </div>
               </div>
             </div>
-            <div class="space-y-4">
-              <div>
-                <select [(ngModel)]="socialLinkForm.platform" (ngModelChange)="clearValidationError('socialLink.platform')" class="w-full input-base" [class.input-error]="hasValidationError('socialLink.platform')">
-                  <option value="">Select Platform</option>
-                  <option value="github">GitHub</option>
-                  <option value="linkedin">LinkedIn</option>
-                  <option value="twitter">Twitter</option>
-                  <option value="instagram">Instagram</option>
-                  <option value="facebook">Facebook</option>
-                  <option value="youtube">YouTube</option>
-                  <option value="medium">Medium</option>
-                  <option value="dev">Dev.to</option>
-                  <option value="stackoverflow">Stack Overflow</option>
-                  <option value="behance">Behance</option>
-                  <option value="dribbble">Dribbble</option>
-                  <option value="website">Website</option>
-                </select>
-                @if (hasValidationError('socialLink.platform')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['socialLink.platform'] }}</p>
-                }
-              </div>
-              <div>
-                <input [(ngModel)]="socialLinkForm.url" (ngModelChange)="clearValidationError('socialLink.url')" type="url" class="w-full input-base" [class.input-error]="hasValidationError('socialLink.url')" placeholder="https://..." />
-                @if (hasValidationError('socialLink.url')) {
-                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['socialLink.url'] }}</p>
-                }
-              </div>
-              <div>
-                <input [(ngModel)]="socialLinkForm.username" type="text" class="w-full input-base" placeholder="Username (optional)" />
-              </div>
-              <button class="btn-primary w-full" (click)="saveSocialLink()">{{ editingSocialLinkId() ? 'Update Link' : 'Add Link' }}</button>
-            </div>
-          </div>
-        </section>
+          </section>
+        }
       </main>
     </div>
   `,
@@ -714,6 +864,47 @@ type ValidationErrors = Record<string, string>;
       .input-error {
         border-color: rgb(248 113 113);
       }
+
+      .tab-button {
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        color: rgb(107 114 128);
+        background: transparent;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: all 200ms;
+      }
+
+      .tab-button:hover {
+        color: rgb(249 115 22);
+        background: rgba(249, 115, 22, 0.05);
+      }
+
+      .tab-button.active {
+        color: rgb(249 115 22);
+        background: rgba(249, 115, 22, 0.1);
+        border-color: rgba(249, 115, 22, 0.2);
+      }
+
+      .badge-success {
+        padding: 0.25rem 0.75rem;
+        background: rgb(34 197 94);
+        color: white;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+
+      .badge-warning {
+        padding: 0.25rem 0.75rem;
+        background: rgb(249 115 22);
+        color: white;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -725,6 +916,13 @@ export class AdminDashboardComponent {
   status = signal<string | null>(null);
   error = signal<string | null>(null);
   validationErrors = signal<ValidationErrors>({});
+
+  // Tab navigation
+  currentTab = signal<'my-portfolio' | 'all-users' | 'live-updates'>('my-portfolio');
+
+  // Users management
+  allUsers = signal<any[]>([]);
+  isLoadingUsers = signal(false);
 
   aboutForm: AboutData = { bio: '', description: '', yearsExperience: 0 };
   contactForm: ContactData = {
@@ -798,9 +996,10 @@ export class AdminDashboardComponent {
   }
 
   refresh() {
+    this.setStatus('Refreshing portfolio data...');
+    // loadPortfolio() is async - it updates signals via subscription
+    // The effect() on signals will auto-hydrate forms when data arrives
     this.portfolioService.loadPortfolio();
-    this.hydrateForms();
-    this.setStatus('Portfolio refreshed.');
   }
 
   async saveAbout() {
@@ -811,8 +1010,7 @@ export class AdminDashboardComponent {
 
     await this.runAction(async () => {
       await this.portfolioService.updateAbout(this.aboutForm, this.authService.authHeaders());
-      this.setStatus('About section updated.');
-    });
+    }, 'About section updated successfully!');
   }
 
   async saveContact() {
@@ -823,8 +1021,7 @@ export class AdminDashboardComponent {
 
     await this.runAction(async () => {
       await this.portfolioService.updateContact(this.contactForm, this.authService.authHeaders());
-      this.setStatus('Contact section updated.');
-    });
+    }, 'Contact section updated successfully!');
   }
 
   editSkill(skill: Skill) {
@@ -852,23 +1049,20 @@ export class AdminDashboardComponent {
           this.skillForm,
           this.authService.authHeaders()
         );
-        this.setStatus('Skill updated.');
       } else {
         await this.portfolioService.createSkill(this.skillForm, this.authService.authHeaders());
-        this.setStatus('Skill added.');
       }
       this.resetSkillForm();
-    });
+    }, this.editingSkillId() ? 'Skill updated successfully!' : 'Skill added successfully!');
   }
 
   async deleteSkill(id: string | number) {
     await this.runAction(async () => {
       await this.portfolioService.deleteSkill(id, this.authService.authHeaders());
-      this.setStatus('Skill deleted.');
       if (this.editingSkillId() === id) {
         this.resetSkillForm();
       }
-    });
+    }, 'Skill deleted successfully!');
   }
 
   editProject(project: Project) {
@@ -920,23 +1114,20 @@ export class AdminDashboardComponent {
           payload,
           this.authService.authHeaders()
         );
-        this.setStatus('Project updated.');
       } else {
         await this.portfolioService.createProject(payload, this.authService.authHeaders());
-        this.setStatus('Project added.');
       }
       this.resetProjectForm();
-    });
+    }, this.editingProjectId() ? 'Project updated successfully!' : 'Project added successfully!');
   }
 
   async deleteProject(id: string | number) {
     await this.runAction(async () => {
       await this.portfolioService.deleteProject(id, this.authService.authHeaders());
-      this.setStatus('Project deleted.');
       if (this.editingProjectId() === id) {
         this.resetProjectForm();
       }
-    });
+    }, 'Project deleted successfully!');
   }
 
   editExperience(item: Experience) {
@@ -978,26 +1169,23 @@ export class AdminDashboardComponent {
           this.experienceForm,
           this.authService.authHeaders()
         );
-        this.setStatus('Experience updated.');
       } else {
         await this.portfolioService.createExperience(
           this.experienceForm,
           this.authService.authHeaders()
         );
-        this.setStatus('Experience added.');
       }
       this.resetExperienceForm();
-    });
+    }, this.editingExperienceId() ? 'Experience updated successfully!' : 'Experience added successfully!');
   }
 
   async deleteExperience(id: string | number) {
     await this.runAction(async () => {
       await this.portfolioService.deleteExperience(id, this.authService.authHeaders());
-      this.setStatus('Experience deleted.');
       if (this.editingExperienceId() === id) {
         this.resetExperienceForm();
       }
-    });
+    }, 'Experience deleted successfully!');
   }
 
   editEducation(item: Education) {
@@ -1043,26 +1231,23 @@ export class AdminDashboardComponent {
           this.educationForm,
           this.authService.authHeaders()
         );
-        this.setStatus('Education updated.');
       } else {
         await this.portfolioService.createEducation(
           this.educationForm,
           this.authService.authHeaders()
         );
-        this.setStatus('Education added.');
       }
       this.resetEducationForm();
-    });
+    }, this.editingEducationId() ? 'Education updated successfully!' : 'Education added successfully!');
   }
 
   async deleteEducation(id: string | number) {
     await this.runAction(async () => {
       await this.portfolioService.deleteEducation(id, this.authService.authHeaders());
-      this.setStatus('Education deleted.');
       if (this.editingEducationId() === id) {
         this.resetEducationForm();
       }
-    });
+    }, 'Education deleted successfully!');
   }
 
   editSocialLink(link: SocialLink) {
@@ -1098,26 +1283,23 @@ export class AdminDashboardComponent {
           this.socialLinkForm,
           this.authService.authHeaders()
         );
-        this.setStatus('Social link updated.');
       } else {
         await this.portfolioService.createSocialLink(
           this.socialLinkForm,
           this.authService.authHeaders()
         );
-        this.setStatus('Social link added.');
       }
       this.resetSocialLinkForm();
-    });
+    }, this.editingSocialLinkId() ? 'Social link updated successfully!' : 'Social link added successfully!');
   }
 
   async deleteSocialLink(id: string | number) {
     await this.runAction(async () => {
       await this.portfolioService.deleteSocialLink(id, this.authService.authHeaders());
-      this.setStatus('Social link deleted.');
       if (this.editingSocialLinkId() === id) {
         this.resetSocialLinkForm();
       }
-    });
+    }, 'Social link deleted successfully!');
   }
 
   hasValidationError(key: string) {
@@ -1359,14 +1541,66 @@ export class AdminDashboardComponent {
     }
   }
 
-  private async runAction(action: () => Promise<void>) {
+  private async runAction(action: () => Promise<void>, successMessage?: string) {
     try {
       this.error.set(null);
       await action();
       this.validationErrors.set({});
       this.hydrateForms();
+      if (successMessage) {
+        this.status.set(successMessage);
+        this.error.set(null);
+      }
     } catch (error: any) {
       this.error.set(error.message ?? 'Something went wrong.');
     }
+  }
+
+  // Users management
+  async loadAllUsers() {
+    this.isLoadingUsers.set(true);
+    try {
+      const users = await this.portfolioService.fetchAllUsers(this.authService.authHeaders());
+      this.allUsers.set(users);
+    } catch (error: any) {
+      this.error.set('Failed to load users: ' + (error.message ?? 'Unknown error'));
+    } finally {
+      this.isLoadingUsers.set(false);
+    }
+  }
+
+  async viewUserPortfolio(userId: number | string) {
+    try {
+      const portfolio = await this.portfolioService.fetchUserPortfolio(userId, this.authService.authHeaders());
+      if (portfolio) {
+        this.setStatus(`Loaded portfolio for user ID: ${userId}`);
+      } else {
+        this.error.set('Portfolio not found for this user');
+      }
+    } catch (error: any) {
+      this.error.set('Failed to load user portfolio: ' + (error.message ?? 'Unknown error'));
+    }
+  }
+
+  exportData() {
+    const data = {
+      skills: this.skills(),
+      projects: this.projects(),
+      experience: this.experience(),
+      education: this.education(),
+      socialLinks: this.socialLinks(),
+      about: this.portfolioService.about(),
+      contact: this.portfolioService.contact(),
+      exportedAt: new Date().toISOString(),
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `portfolio-export-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    this.setStatus('Data exported successfully!');
   }
 }

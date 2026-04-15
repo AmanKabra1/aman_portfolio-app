@@ -69,6 +69,14 @@ import { AuthService } from '../services/auth.service';
               </a>
             </p>
           </div>
+
+          <div class="mt-6 rounded-xl border border-amber-200/80 dark:border-amber-500/20 bg-amber-50/80 dark:bg-amber-500/10 px-4 py-4">
+            <p class="text-sm font-semibold text-amber-800 dark:text-amber-200">Portfolio Owner?</p>
+            <p class="text-sm text-amber-700 dark:text-amber-100/80 mt-1">
+              Use this same login to access your admin dashboard at
+              <a routerLink="/dashboard" class="font-medium underline">/dashboard</a>.
+            </p>
+          </div>
         </div>
       </div>
     </div>

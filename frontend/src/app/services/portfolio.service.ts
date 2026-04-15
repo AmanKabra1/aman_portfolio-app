@@ -29,6 +29,32 @@ export class PortfolioService {
   isLoading = signal(false);
   error = signal<string | null>(null);
 
+  constructor() {
+    // Listen for logout events to clear cache
+    if (typeof window !== 'undefined') {
+      window.addEventListener('auth:logout', () => {
+        this.clearCache();
+      });
+    }
+  }
+
+  clearCache(): void {
+    this.portfolioData.set(null);
+    this.themeData.set(null);
+    this.about.set({ bio: '', description: '', yearsExperience: 0 });
+    this.contact.set({
+      email: '', phone: '', location: '',
+      github: '', linkedin: '', medium: '',
+      tableau: '', leetcode: '', instagram: '',
+      youtube: '', portfolio: ''
+    });
+    this.skillsData.set([]);
+    this.projectsData.set([]);
+    this.experienceData.set([]);
+    this.educationData.set([]);
+    this.socialLinksData.set([]);
+  }
+
   // Public readonly signals
   getSkills = this.skillsData.asReadonly();
   getProjects = this.projectsData.asReadonly();
@@ -274,6 +300,22 @@ export class PortfolioService {
 
   getTemplates() {
     return this.http.get<{ success: boolean; data: string[] }>(`${API_BASE_URL}/themes/templates`);
+  }
+
+  // Admin: Get all users
+  async fetchAllUsers(headers: HttpHeaders): Promise<any[]> {
+    const response = await this.http
+      .get<{ success: boolean; data: any[] }>(`${API_BASE_URL}/users/all`, { headers })
+      .toPromise();
+    return response?.data ?? [];
+  }
+
+  // Admin: Get user portfolio by user ID
+  async fetchUserPortfolio(userId: number | string, headers: HttpHeaders): Promise<any> {
+    const response = await this.http
+      .get<{ success: boolean; data: any }>(`${API_BASE_URL}/portfolios/user/${userId}`, { headers })
+      .toPromise();
+    return response?.data ?? null;
   }
 
   // About CRUD

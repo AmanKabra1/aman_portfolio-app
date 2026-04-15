@@ -776,8 +776,8 @@ export class UserDashboardComponent {
   }
 
   refresh() {
+    this.setStatus('Refreshing portfolio data...');
     this.portfolioService.loadPortfolio(this.authService.authHeaders());
-    this.setStatus('Portfolio refreshed');
   }
 
   copyPortfolioUrl() {
@@ -789,43 +789,37 @@ export class UserDashboardComponent {
   async makePublic() {
     await this.runAction(async () => {
       await this.portfolioService.toggleVisibility(this.authService.authHeaders());
-      this.setStatus('Portfolio is now public!');
-    });
+    }, 'Portfolio is now public!');
   }
 
   async makePrivate() {
     await this.runAction(async () => {
       await this.portfolioService.toggleVisibility(this.authService.authHeaders());
-      this.setStatus('Portfolio is now private');
-    });
+    }, 'Portfolio is now private');
   }
 
   async saveTheme() {
     await this.runAction(async () => {
       await this.portfolioService.updateTheme(this.themeForm, this.authService.authHeaders());
-      this.setStatus('Theme saved!');
-    });
+    }, 'Theme saved!');
   }
 
   async applyPreset(preset: string) {
     await this.runAction(async () => {
       await this.portfolioService.applyPreset(preset, this.authService.authHeaders());
-      this.setStatus('Preset applied!');
-    });
+    }, 'Preset applied!');
   }
 
   async saveAbout() {
     await this.runAction(async () => {
       await this.portfolioService.updateAbout(this.aboutForm, this.authService.authHeaders());
-      this.setStatus('About section updated!');
-    });
+    }, 'About section updated!');
   }
 
   async saveContact() {
     await this.runAction(async () => {
       await this.portfolioService.updateContact(this.contactForm, this.authService.authHeaders());
-      this.setStatus('Contact section updated!');
-    });
+    }, 'Contact section updated!');
   }
 
   editSkill(skill: Skill) {
@@ -842,20 +836,17 @@ export class UserDashboardComponent {
     await this.runAction(async () => {
       if (this.editingSkillId()) {
         await this.portfolioService.updateSkill(this.editingSkillId()!, this.skillForm, this.authService.authHeaders());
-        this.setStatus('Skill updated!');
       } else {
         await this.portfolioService.createSkill(this.skillForm, this.authService.authHeaders());
-        this.setStatus('Skill added!');
       }
       this.resetSkillForm();
-    });
+    }, this.editingSkillId() ? 'Skill updated!' : 'Skill added!');
   }
 
   async deleteSkill(id: string | number) {
     await this.runAction(async () => {
       await this.portfolioService.deleteSkill(id, this.authService.authHeaders());
-      this.setStatus('Skill deleted!');
-    });
+    }, 'Skill deleted!');
   }
 
   editProject(project: Project) {
@@ -885,20 +876,17 @@ export class UserDashboardComponent {
     await this.runAction(async () => {
       if (this.editingProjectId()) {
         await this.portfolioService.updateProject(this.editingProjectId()!, payload, this.authService.authHeaders());
-        this.setStatus('Project updated!');
       } else {
         await this.portfolioService.createProject(payload, this.authService.authHeaders());
-        this.setStatus('Project added!');
       }
       this.resetProjectForm();
-    });
+    }, this.editingProjectId() ? 'Project updated!' : 'Project added!');
   }
 
   async deleteProject(id: string | number) {
     await this.runAction(async () => {
       await this.portfolioService.deleteProject(id, this.authService.authHeaders());
-      this.setStatus('Project deleted!');
-    });
+    }, 'Project deleted!');
   }
 
   editExperience(item: Experience) {
@@ -922,20 +910,17 @@ export class UserDashboardComponent {
     await this.runAction(async () => {
       if (this.editingExperienceId()) {
         await this.portfolioService.updateExperience(this.editingExperienceId()!, this.experienceForm, this.authService.authHeaders());
-        this.setStatus('Experience updated!');
       } else {
         await this.portfolioService.createExperience(this.experienceForm, this.authService.authHeaders());
-        this.setStatus('Experience added!');
       }
       this.resetExperienceForm();
-    });
+    }, this.editingExperienceId() ? 'Experience updated!' : 'Experience added!');
   }
 
   async deleteExperience(id: string | number) {
     await this.runAction(async () => {
       await this.portfolioService.deleteExperience(id, this.authService.authHeaders());
-      this.setStatus('Experience deleted!');
-    });
+    }, 'Experience deleted!');
   }
 
   editEducation(item: Education) {
@@ -961,13 +946,11 @@ export class UserDashboardComponent {
     await this.runAction(async () => {
       if (this.editingEducationId()) {
         await this.portfolioService.updateEducation(this.editingEducationId()!, this.educationForm, this.authService.authHeaders());
-        this.setStatus('Education updated!');
       } else {
         await this.portfolioService.createEducation(this.educationForm, this.authService.authHeaders());
-        this.setStatus('Education added!');
       }
       this.resetEducationForm();
-    });
+    }, this.editingEducationId() ? 'Education updated!' : 'Education added!');
   }
 
   async deleteEducation(id: string | number) {
@@ -996,10 +979,13 @@ export class UserDashboardComponent {
     setTimeout(() => this.status.set(null), 5000);
   }
 
-  private async runAction(action: () => Promise<void>) {
+  private async runAction(action: () => Promise<void>, successMessage?: string) {
     try {
       this.error.set(null);
       await action();
+      if (successMessage) {
+        this.setStatus(successMessage);
+      }
     } catch (error: any) {
       this.error.set(error.message ?? 'Something went wrong');
     }

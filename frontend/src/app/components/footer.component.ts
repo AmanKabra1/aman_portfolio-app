@@ -18,7 +18,7 @@ import { AuthService } from '../services/auth.service';
 
           <div class="flex flex-col sm:flex-row gap-6 text-center md:text-right text-sm text-gray-400">
             <a routerLink="/resume" class="hover:text-primary-400 transition-colors">Download Resume</a>
-            <a routerLink="/admin/login" class="hover:text-primary-400 transition-colors">Admin Login</a>
+            <a routerLink="/login" class="hover:text-primary-400 transition-colors">Login</a>
           </div>
         </div>
 

@@ -4,7 +4,6 @@ import { LoginComponent } from './components/login.component';
 import { RegisterComponent } from './components/register.component';
 import { UserDashboardComponent } from './components/user-dashboard.component';
 import { PublicPortfolioComponent } from './components/public-portfolio.component';
-import { AdminLoginComponent } from './components/admin-login.component';
 import { AdminDashboardComponent } from './components/admin-dashboard.component';
 import { ResumeComponent } from './components/resume.component';
 import { adminGuard } from './guards/admin.guard';
@@ -34,7 +33,8 @@ export const routes: Routes = [
   },
   {
     path: 'admin/login',
-    component: AdminLoginComponent,
+    redirectTo: '/login',
+    pathMatch: 'full',
   },
   {
     path: 'admin/dashboard',

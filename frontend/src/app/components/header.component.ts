@@ -28,6 +28,9 @@ import { AuthService } from '../services/auth.service';
 
         <!-- Theme Toggle & Mobile Menu -->
         <div class="flex items-center gap-4">
+          @if (!isAuthenticated()) {
+            <a routerLink="/login" class="btn-primary text-sm py-2 px-4">Login</a>
+          }
           <!-- Theme Toggle -->
           <button
             (click)="toggleTheme()"
@@ -67,6 +70,7 @@ export class HeaderComponent {
 
   isMobileMenuOpen = signal(false);
   isDark = signal(this.initializeDarkMode());
+  isAuthenticated = computed(() => this.authService.isAuthenticated());
   displayName = computed(() => (this.authService.user()?.firstName + ' ' + this.authService.user()?.lastName).trim() || 'Portfolio');
   displayInitial = computed(() => this.displayName().charAt(0).toUpperCase() || 'P');
 

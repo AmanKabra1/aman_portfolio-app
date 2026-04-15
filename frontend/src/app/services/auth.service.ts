@@ -165,7 +165,14 @@ export class AuthService {
     this.user.set(null);
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.userKey);
+    // Clear portfolio cache to prevent data leakage between sessions
+    this.clearCache();
     this.router.navigate(['/']);
+  }
+
+  private clearCache(): void {
+    // Dispatch event for services to clear their state
+    window.dispatchEvent(new CustomEvent('auth:logout'));
   }
 
   authHeaders(): HttpHeaders {
