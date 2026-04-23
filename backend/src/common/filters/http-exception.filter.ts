@@ -23,12 +23,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
       if (typeof exceptionResponse === 'object') {
         const resp = exceptionResponse as any;
-        message = resp.message || exception.message;
-        
-        // Handle validation errors
+
+        // Handle validation errors (array of messages)
         if (Array.isArray(resp.message)) {
           errors = resp.message;
           message = 'Validation failed';
+        }
+        // Handle object with message property
+        else if (resp.message) {
+          message = Array.isArray(resp.message) ? 'Validation failed' : resp.message;
+        } else {
+          message = exception.message;
         }
       } else {
         message = exceptionResponse as string;
@@ -40,7 +45,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     response.status(status).json({
       success: false,
       message,
-      errors,
+      errors: errors.length > 0 ? errors : undefined,
     });
   }
 }

@@ -1,11 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { GenerateResumeDto } from './dto/generate-resume.dto';
-import * as puppeteer from 'puppeteer';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { modernTemplate } from './templates/modern.template';
 import { classicTemplate } from './templates/classic.template';
+
+// PDF generation with pdf-lib (doesn't require Chrome)
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 @Injectable()
 export class ResumeService {
@@ -22,7 +24,7 @@ export class ResumeService {
     private readonly uploadsDir = path.join(process.cwd(), 'uploads', 'resumes');
 
     /**
-     * Generate PDF resume
+     * Generate PDF resume using pdf-lib (cloud-friendly, no Chrome needed)
      */
     async generateResume(userId: number, dto: GenerateResumeDto) {
         // Get portfolio data
@@ -93,37 +95,189 @@ export class ResumeService {
 
         // Get HTML template
         const template = dto.template || 'modern';
-        const html = this.getTemplate(template, data);
 
-        // Generate PDF
+        // Generate PDF using pdf-lib
         const filename = `resume-${userId}-${Date.now()}.pdf`;
         const filepath = path.join(this.uploadsDir, filename);
 
         // Ensure directory exists
         await fs.mkdir(this.uploadsDir, { recursive: true });
 
-        // Launch browser and generate PDF
-        const browser = await puppeteer.launch({
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        // Create PDF
+        const pdfDoc = await PDFDocument.create();
+        const timesRoman = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+        const timesBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+        const timesItalic = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
+
+        const page = pdfDoc.addPage([612, 792]); // Letter size
+        const { width, height } = page.getSize();
+
+        const primaryColor = portfolio.theme?.primaryColor || '#3B82F6';
+        const textColor = portfolio.theme?.textColor || '#1F2937';
+        const parsedPrimary = this.hexToRgb(primaryColor);
+        const parsedText = this.hexToRgb(textColor);
+
+        let y = height - 50;
+        const leftMargin = 50;
+        const rightMargin = width - 50;
+
+        // Name/Header
+        const fullName = `${portfolio.user?.firstName || ''} ${portfolio.user?.lastName || ''}`.trim() || 'Your Name';
+        page.drawText(fullName, {
+            x: leftMargin,
+            y,
+            size: 24,
+            font: timesBold,
+            color: parsedPrimary,
         });
 
-        const page = await browser.newPage();
-        await page.setContent(html, { waitUntil: 'networkidle0' });
+        y -= 25;
 
-        await page.pdf({
-            path: filepath,
-            format: dto.paperSize === 'letter' ? 'letter' : 'a4',
-            printBackground: true,
-            margin: {
-                top: '20px',
-                right: '20px',
-                bottom: '20px',
-                left: '20px',
-            },
-        });
+        // Title
+        if (portfolio.title) {
+            page.drawText(portfolio.title, {
+                x: leftMargin,
+                y,
+                size: 12,
+                font: timesItalic,
+                color: parsedText,
+            });
+            y -= 20;
+        }
 
-        await browser.close();
+        // Contact info
+        const contactParts: string[] = [];
+        if (portfolio.email) contactParts.push(portfolio.email);
+        if (portfolio.phone) contactParts.push(portfolio.phone);
+        if (portfolio.location) contactParts.push(portfolio.location);
+        if (contactParts.length > 0) {
+            page.drawText(contactParts.join(' | '), {
+                x: leftMargin,
+                y,
+                size: 10,
+                font: timesRoman,
+                color: parsedText,
+            });
+            y -= 25;
+        }
+
+        // Bio/Summary
+        if (portfolio.bio) {
+            page.drawText('Summary', {
+                x: leftMargin,
+                y,
+                size: 14,
+                font: timesBold,
+                color: parsedPrimary,
+            });
+            y -= 15;
+            page.drawText(portfolio.bio.substring(0, 200), {
+                x: leftMargin,
+                y,
+                size: 10,
+                font: timesRoman,
+                color: parsedText,
+                maxWidth: rightMargin - leftMargin,
+            });
+            y -= 35;
+        }
+
+        // Skills
+        if (data.skills && data.skills.length > 0) {
+            page.drawText('Skills', {
+                x: leftMargin,
+                y,
+                size: 14,
+                font: timesBold,
+                color: parsedPrimary,
+            });
+            y -= 15;
+            const skillsText = data.skills.slice(0, 10).map(s => s.name).join(', ');
+            page.drawText(skillsText, {
+                x: leftMargin,
+                y,
+                size: 10,
+                font: timesRoman,
+                color: parsedText,
+                maxWidth: rightMargin - leftMargin,
+            });
+            y -= 30;
+        }
+
+        // Experience
+        if (data.experiences && data.experiences.length > 0) {
+            page.drawText('Experience', {
+                x: leftMargin,
+                y,
+                size: 14,
+                font: timesBold,
+                color: parsedPrimary,
+            });
+            y -= 15;
+            for (const exp of data.experiences.slice(0, 3)) {
+                page.drawText(`${exp.position} at ${exp.company}`, {
+                    x: leftMargin,
+                    y,
+                    size: 11,
+                    font: timesBold,
+                    color: parsedText,
+                });
+                y -= 12;
+                page.drawText(`${exp.startDate} - ${exp.endDate}`, {
+                    x: leftMargin,
+                    y,
+                    size: 9,
+                    font: timesItalic,
+                    color: parsedText,
+                });
+                y -= 12;
+                if (exp.description) {
+                    page.drawText(exp.description.substring(0, 100), {
+                        x: leftMargin,
+                        y,
+                        size: 9,
+                        font: timesRoman,
+                        color: parsedText,
+                        maxWidth: rightMargin - leftMargin,
+                    });
+                    y -= 20;
+                }
+            }
+        }
+
+        // Education
+        if (data.education && data.education.length > 0) {
+            page.drawText('Education', {
+                x: leftMargin,
+                y,
+                size: 14,
+                font: timesBold,
+                color: parsedPrimary,
+            });
+            y -= 15;
+            for (const edu of data.education.slice(0, 2)) {
+                page.drawText(`${edu.degree} in ${edu.field || 'General Studies'}`, {
+                    x: leftMargin,
+                    y,
+                    size: 11,
+                    font: timesBold,
+                    color: parsedText,
+                });
+                y -= 12;
+                page.drawText(`${edu.institution} | ${edu.startDate} - ${edu.endDate}`, {
+                    x: leftMargin,
+                    y,
+                    size: 9,
+                    font: timesItalic,
+                    color: parsedText,
+                });
+                y -= 20;
+            }
+        }
+
+        // Save PDF
+        const pdfBytes = await pdfDoc.save();
+        await fs.writeFile(filepath, Buffer.from(pdfBytes));
 
         // Update portfolio with resume URL
         await this.prisma.portfolio.update({
@@ -143,6 +297,18 @@ export class ResumeService {
                 downloadUrl: `/api/resume/download/${filename}`,
             },
         };
+    }
+
+    private hexToRgb(hex: string): any {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        if (result) {
+            return rgb(
+                parseInt(result[1], 16) / 255,
+                parseInt(result[2], 16) / 255,
+                parseInt(result[3], 16) / 255
+            );
+        }
+        return rgb(0, 0, 0); // Default to black
     }
 
     /**

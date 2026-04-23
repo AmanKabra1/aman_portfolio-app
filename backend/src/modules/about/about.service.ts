@@ -11,6 +11,7 @@ export class AboutService {
       select: {
         bio: true,
         description: true,
+        yearsExperience: true,
       },
     });
 
@@ -24,11 +25,12 @@ export class AboutService {
       data: {
         bio: portfolio.bio ?? '',
         description: portfolio.description ?? '',
+        yearsExperience: portfolio.yearsExperience ?? 0,
       },
     };
   }
 
-  async updateAbout(userId: number, updateData: { bio?: string; description?: string }) {
+  async updateAbout(userId: number, updateData: { bio?: string; description?: string; yearsExperience?: number }) {
     const portfolio = await this.prisma.portfolio.findUnique({
       where: { userId },
     });
@@ -42,10 +44,12 @@ export class AboutService {
       data: {
         bio: updateData.bio ?? undefined,
         description: updateData.description ?? undefined,
+        yearsExperience: updateData.yearsExperience ?? undefined,
       },
       select: {
         bio: true,
         description: true,
+        yearsExperience: true,
       },
     });
 
@@ -55,6 +59,7 @@ export class AboutService {
       data: {
         bio: updated.bio ?? '',
         description: updated.description ?? '',
+        yearsExperience: updated.yearsExperience ?? 0,
       },
     };
   }

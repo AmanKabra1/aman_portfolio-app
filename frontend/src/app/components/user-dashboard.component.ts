@@ -193,6 +193,9 @@ type ValidationErrors = Record<string, string>;
               <textarea [(ngModel)]="aboutForm.description" rows="4" class="w-full input-base" placeholder="Tell your story..."></textarea>
             </div>
             <button class="btn-primary" (click)="saveAbout()">Save About</button>
+            @if (aboutError()) {
+              <p class="text-red-500 text-sm mt-1">{{ aboutError() }}</p>
+            }
           </div>
         </section>
 
@@ -231,6 +234,9 @@ type ValidationErrors = Record<string, string>;
             </div>
           </div>
           <button class="btn-primary mt-4" (click)="saveContact()">Save Contact</button>
+          @if (contactError()) {
+            <p class="text-red-500 text-sm mt-1">{{ contactError() }}</p>
+          }
         </section>
 
         <!-- Skills -->
@@ -346,6 +352,9 @@ type ValidationErrors = Record<string, string>;
           <button class="btn-primary mt-4 block" (click)="saveProject()">
             {{ editingProjectId() ? 'Update Project' : 'Add Project' }}
           </button>
+          @if (projectError()) {
+            <p class="text-red-500 text-sm mt-1">{{ projectError() }}</p>
+          }
         </section>
 
         <!-- Experience -->
@@ -396,6 +405,9 @@ type ValidationErrors = Record<string, string>;
           <button class="btn-primary mt-4" (click)="saveExperience()">
             {{ editingExperienceId() ? 'Update Experience' : 'Add Experience' }}
           </button>
+          @if (experienceError()) {
+            <p class="text-red-500 text-sm mt-1">{{ experienceError() }}</p>
+          }
         </section>
 
         <!-- Education -->
@@ -458,6 +470,9 @@ type ValidationErrors = Record<string, string>;
           <button class="btn-primary mt-4 block" (click)="saveEducation()">
             {{ editingEducationId() ? 'Update Education' : 'Add Education' }}
           </button>
+          @if (educationError()) {
+            <p class="text-red-500 text-sm mt-1">{{ educationError() }}</p>
+          }
         </section>
 
         <!-- Resume Generation -->
@@ -693,6 +708,7 @@ export class UserDashboardComponent {
 
   status = signal<string | null>(null);
   error = signal<string | null>(null);
+  inlineError = signal<string | null>(null);
   showThemeEditor = signal(false);
   isGeneratingResume = signal(false);
   resumeTemplate = 'modern';
@@ -704,6 +720,14 @@ export class UserDashboardComponent {
   projects = this.portfolioService.getProjects;
   experience = this.portfolioService.getExperience;
   education = this.portfolioService.getEducation;
+
+  aboutError = signal<string | null>(null);
+  contactError = signal<string | null>(null);
+  skillError = signal<string | null>(null);
+  projectError = signal<string | null>(null);
+  experienceError = signal<string | null>(null);
+  educationError = signal<string | null>(null);
+  themeError = signal<string | null>(null);
 
   aboutForm: AboutData = { bio: '', description: '', yearsExperience: 0 };
   contactForm: ContactData = {
@@ -744,7 +768,7 @@ export class UserDashboardComponent {
         this.aboutForm = {
           bio: portfolio.bio ?? '',
           description: portfolio.description ?? '',
-          yearsExperience: 0,
+          yearsExperience: (portfolio as any).yearsExperience ?? this.portfolioService.about().yearsExperience,
         };
         this.contactForm = {
           email: portfolio.email ?? '',
@@ -770,8 +794,15 @@ export class UserDashboardComponent {
     });
 
     effect(() => {
-      this.aboutForm = { ...this.portfolioService.about() };
-      this.contactForm = { ...this.portfolioService.contact() };
+      const aboutData = this.portfolioService.about();
+      this.aboutForm = {
+        ...this.aboutForm,
+        bio: aboutData.bio,
+        description: aboutData.description,
+        yearsExperience: aboutData.yearsExperience,
+      };
+      const contactData = this.portfolioService.contact();
+      this.contactForm = { ...contactData };
     });
   }
 
@@ -811,13 +842,13 @@ export class UserDashboardComponent {
   }
 
   async saveAbout() {
-    await this.runAction(async () => {
+    await this.runSectionAction(this.aboutError, async () => {
       await this.portfolioService.updateAbout(this.aboutForm, this.authService.authHeaders());
     }, 'About section updated!');
   }
 
   async saveContact() {
-    await this.runAction(async () => {
+    await this.runSectionAction(this.contactError, async () => {
       await this.portfolioService.updateContact(this.contactForm, this.authService.authHeaders());
     }, 'Contact section updated!');
   }
@@ -833,7 +864,7 @@ export class UserDashboardComponent {
   }
 
   async saveSkill() {
-    await this.runAction(async () => {
+    await this.runSectionAction(this.skillError, async () => {
       if (this.editingSkillId()) {
         await this.portfolioService.updateSkill(this.editingSkillId()!, this.skillForm, this.authService.authHeaders());
       } else {
@@ -873,7 +904,7 @@ export class UserDashboardComponent {
       technologies: this.projectForm.technologies.split(',').map(t => t.trim()).filter(Boolean),
     };
 
-    await this.runAction(async () => {
+    await this.runSectionAction(this.projectError, async () => {
       if (this.editingProjectId()) {
         await this.portfolioService.updateProject(this.editingProjectId()!, payload, this.authService.authHeaders());
       } else {
@@ -907,7 +938,7 @@ export class UserDashboardComponent {
   }
 
   async saveExperience() {
-    await this.runAction(async () => {
+    await this.runSectionAction(this.experienceError, async () => {
       if (this.editingExperienceId()) {
         await this.portfolioService.updateExperience(this.editingExperienceId()!, this.experienceForm, this.authService.authHeaders());
       } else {
@@ -943,7 +974,7 @@ export class UserDashboardComponent {
   }
 
   async saveEducation() {
-    await this.runAction(async () => {
+    await this.runSectionAction(this.educationError, async () => {
       if (this.editingEducationId()) {
         await this.portfolioService.updateEducation(this.editingEducationId()!, this.educationForm, this.authService.authHeaders());
       } else {
@@ -979,15 +1010,36 @@ export class UserDashboardComponent {
     setTimeout(() => this.status.set(null), 5000);
   }
 
-  private async runAction(action: () => Promise<void>, successMessage?: string) {
+  private async runAction(action: () => Promise<void>, successMessage?: string): Promise<boolean> {
     try {
       this.error.set(null);
       await action();
       if (successMessage) {
         this.setStatus(successMessage);
       }
+      return true;
     } catch (error: any) {
       this.error.set(error.message ?? 'Something went wrong');
+      return false;
+    }
+  }
+
+  private async runSectionAction<T>(
+    sectionError: { set: (msg: string | null) => void },
+    action: () => Promise<T>,
+    successMessage?: string
+  ): Promise<boolean> {
+    try {
+      this.error.set(null);
+      sectionError.set(null);
+      await action();
+      if (successMessage) {
+        this.setStatus(successMessage);
+      }
+      return true;
+    } catch (error: any) {
+      sectionError.set(error.message ?? 'Something went wrong');
+      return false;
     }
   }
 }

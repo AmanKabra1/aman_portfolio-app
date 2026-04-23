@@ -1,12 +1,25 @@
-import { 
-  IsString, 
-  IsOptional, 
-  IsBoolean, 
-  Matches, 
-  IsIn 
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  Matches,
+  IsIn,
+  IsNumber,
+  ValidateIf,
 } from 'class-validator';
 
 export class UpdateThemeDto {
+  // ID fields - allow but don't validate strictly
+  @IsOptional()
+  @IsNumber()
+  @ValidateIf((_, value) => value !== null && value !== undefined)
+  id?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @ValidateIf((_, value) => value !== null && value !== undefined)
+  portfolioId?: number;
+
   // Colors
   @IsString()
   @IsOptional()

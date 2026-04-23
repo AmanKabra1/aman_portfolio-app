@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { UpdateThemeDto, ThemePresetDto } from './dto/update-theme.dto';
 
 @Injectable()
 export class ThemesService {
+  private readonly logger = new Logger(ThemesService.name);
   constructor(private prisma: PrismaService) { }
 
   // Predefined theme presets
@@ -63,14 +64,19 @@ export class ThemesService {
    * Get theme for user's portfolio
    */
   async getTheme(userId: number) {
+    this.logger.log(`Getting theme for userId: ${userId}`);
+
     const portfolio = await this.prisma.portfolio.findUnique({
       where: { userId },
       include: { theme: true },
     });
 
     if (!portfolio) {
+      this.logger.warn(`Portfolio not found for userId: ${userId}`);
       throw new NotFoundException('Portfolio not found');
     }
+
+    this.logger.log(`Portfolio found: ${portfolio.id}, theme: ${portfolio.theme ? 'exists' : 'missing'}`);
 
     if (!portfolio.theme) {
       // Create default theme if doesn't exist

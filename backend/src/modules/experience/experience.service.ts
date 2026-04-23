@@ -65,10 +65,14 @@ export class ExperienceService {
 
     const experience = await this.prisma.experience.create({
       data: {
-        ...createExperienceDto,
         portfolioId: portfolio.id,
+        company: createExperienceDto.company,
+        position: createExperienceDto.position,
+        duration: createExperienceDto.duration || '',
+        description: createExperienceDto.description || '',
         startDate: new Date(createExperienceDto.startDate),
         endDate: createExperienceDto.endDate ? new Date(createExperienceDto.endDate) : null,
+        isCurrent: createExperienceDto.isCurrent || false,
       },
     });
 
@@ -89,7 +93,7 @@ export class ExperienceService {
     }
 
     const experience = await this.prisma.experience.findFirst({
-      where: { 
+      where: {
         id,
         portfolioId: portfolio.id,
       },
@@ -99,13 +103,16 @@ export class ExperienceService {
       throw new NotFoundException('Experience not found');
     }
 
-    const updateData: any = { ...updateExperienceDto };
-    if (updateExperienceDto.startDate) {
-      updateData.startDate = new Date(updateExperienceDto.startDate);
+    const updateData: any = {};
+    if (updateExperienceDto.company !== undefined) updateData.company = updateExperienceDto.company;
+    if (updateExperienceDto.position !== undefined) updateData.position = updateExperienceDto.position;
+    if (updateExperienceDto.duration !== undefined) updateData.duration = updateExperienceDto.duration;
+    if (updateExperienceDto.description !== undefined) updateData.description = updateExperienceDto.description;
+    if (updateExperienceDto.startDate !== undefined) updateData.startDate = new Date(updateExperienceDto.startDate);
+    if (updateExperienceDto.endDate !== undefined) {
+      updateData.endDate = updateExperienceDto.endDate ? new Date(updateExperienceDto.endDate) : null;
     }
-    if (updateExperienceDto.endDate) {
-      updateData.endDate = new Date(updateExperienceDto.endDate);
-    }
+    if (updateExperienceDto.isCurrent !== undefined) updateData.isCurrent = updateExperienceDto.isCurrent;
 
     const updated = await this.prisma.experience.update({
       where: { id },

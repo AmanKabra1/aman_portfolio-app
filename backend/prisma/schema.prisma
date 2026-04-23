@@ -56,34 +56,35 @@ model Portfolio {
   id            Int       @id @default(autoincrement())
   userId        Int       @unique
   slug          String    @unique
-  
+
   isPublic      Boolean   @default(false)
   isActive      Boolean   @default(true)
-  
+
   // Basic Info
   title         String?
   subtitle      String?
   bio           String?   @db.Text
   description   String?   @db.Text
   tagline       String?
-  
+  yearsExperience Int?     @default(0)
+
   // Profile
   profilePhotoUrl String?
   coverPhotoUrl   String?
-  
+
   // Resume
   resumeUrl     String?
   lastGeneratedAt DateTime?
-  
+
   // Social & Contact
   email         String?
   phone         String?
   location      String?
   website       String?
-  
+
   // Stats
   viewCount     Int       @default(0)
-  
+
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   theme         PortfolioTheme?
   skills        Skill[]
@@ -91,7 +92,7 @@ model Portfolio {
   experiences   Experience[]
   education     Education[]
   socialLinks   SocialLink[]
-  
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -201,19 +202,20 @@ model ProjectTechnology {
 model Experience {
   id          Int       @id @default(autoincrement())
   portfolioId Int
-  
+
   company     String
   position    String
   location    String?
   description String    @db.Text
+  duration    String?   // e.g., "Jan 2020 - Present" or "2 years"
   startDate   DateTime
   endDate     DateTime?
   isCurrent   Boolean   @default(false)
   order       Int       @default(0)
   isVisible   Boolean   @default(true)
-  
+
   portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
-  
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

@@ -13,29 +13,41 @@ export class CreateProjectDto {
   title: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'Description is required' })
-  description: string;
+  @IsOptional()
+  description?: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'Image is required' })
-  image: string;
+  @IsOptional()
+  image?: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'Live link is required' })
-  liveLink: string;
+  @IsOptional()
+  liveLink?: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'GitHub link is required' })
-  githubLink: string;
+  @IsOptional()
+  githubLink?: string;
 
   @IsBoolean()
   @IsOptional()
   featured?: boolean;
 
   @IsArray()
-  @ArrayMinSize(1, { message: 'At least one technology is required' })
+  @IsOptional()
   @IsString({ each: true })
-  technologies: string[];
+  technologies?: string[];
+
+  @IsOptional()
+  @IsString()
+  startDate?: string;
+
+  @IsOptional()
+  @IsString()
+  endDate?: string;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
 }
 
 export class UpdateProjectDto {
@@ -67,4 +79,16 @@ export class UpdateProjectDto {
   @IsOptional()
   @IsString({ each: true })
   technologies?: string[];
+
+  @IsOptional()
+  @IsString()
+  startDate?: string;
+
+  @IsOptional()
+  @IsString()
+  endDate?: string;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
 }

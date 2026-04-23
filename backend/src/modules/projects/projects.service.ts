@@ -77,13 +77,21 @@ export class ProjectsService {
 
     const project = await this.prisma.project.create({
       data: {
-        ...projectData,
         portfolioId: portfolio.id,
-        technologies: {
+        title: projectData.title,
+        description: projectData.description || '',
+        imageUrl: projectData.image || '',
+        liveUrl: projectData.liveLink || '',
+        githubUrl: projectData.githubLink || '',
+        featured: projectData.featured || false,
+        startDate: projectData.startDate ? new Date(projectData.startDate) : null,
+        endDate: projectData.endDate ? new Date(projectData.endDate) : null,
+        status: projectData.status || 'completed',
+        technologies: technologies ? {
           create: technologies.map((tech) => ({
             technologyName: tech,
           })),
-        },
+        } : undefined,
       },
       include: { technologies: true },
     });
@@ -108,7 +116,7 @@ export class ProjectsService {
     }
 
     const project = await this.prisma.project.findFirst({
-      where: { 
+      where: {
         id,
         portfolioId: portfolio.id,
       },
@@ -120,19 +128,29 @@ export class ProjectsService {
 
     const { technologies, ...projectData } = updateProjectDto;
 
+    const updateData: any = {};
+    if (projectData.title !== undefined) updateData.title = projectData.title;
+    if (projectData.description !== undefined) updateData.description = projectData.description;
+    if (projectData.image !== undefined) updateData.imageUrl = projectData.image;
+    if (projectData.liveLink !== undefined) updateData.liveUrl = projectData.liveLink;
+    if (projectData.githubLink !== undefined) updateData.githubUrl = projectData.githubLink;
+    if (projectData.featured !== undefined) updateData.featured = projectData.featured;
+    if (projectData.startDate !== undefined) updateData.startDate = projectData.startDate ? new Date(projectData.startDate) : null;
+    if (projectData.endDate !== undefined) updateData.endDate = projectData.endDate ? new Date(projectData.endDate) : null;
+    if (projectData.status !== undefined) updateData.status = projectData.status;
+
+    if (technologies) {
+      updateData.technologies = {
+        deleteMany: {},
+        create: technologies.map((tech) => ({
+          technologyName: tech,
+        })),
+      };
+    }
+
     const updated = await this.prisma.project.update({
       where: { id },
-      data: {
-        ...projectData,
-        ...(technologies && {
-          technologies: {
-            deleteMany: {},
-            create: technologies.map((tech) => ({
-              technologyName: tech,
-            })),
-          },
-        }),
-      },
+      data: updateData,
       include: { technologies: true },
     });
 

@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsDateString } from 'class-validator';
+import { IsString, IsNotEmpty, IsDateString, IsOptional, IsBoolean } from 'class-validator';
 
 export class CreateExperienceDto {
   @IsString()
@@ -10,40 +10,51 @@ export class CreateExperienceDto {
   position: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'Duration is required' })
-  duration: string;
+  @IsOptional()
+  duration?: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'Description is required' })
-  description: string;
+  @IsOptional()
+  description?: string;
 
   @IsDateString({}, { message: 'Start date must be a valid date' })
   startDate: string;
 
+  @IsOptional()
   @IsDateString({}, { message: 'End date must be a valid date' })
-  endDate: string;
+  endDate?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isCurrent?: boolean;
 }
 
 export class UpdateExperienceDto {
   @IsString()
-  @IsNotEmpty({ message: 'Company is required' })
+  @IsOptional()
   company?: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'Position is required' })
+  @IsOptional()
   position?: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'Duration is required' })
+  @IsOptional()
   duration?: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'Description is required' })
+  @IsOptional()
   description?: string;
 
+  @IsOptional()
   @IsDateString({}, { message: 'Start date must be a valid date' })
   startDate?: string;
 
+  @IsOptional()
   @IsDateString({}, { message: 'End date must be a valid date' })
   endDate?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isCurrent?: boolean;
 }
