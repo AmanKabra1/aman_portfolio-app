@@ -13,7 +13,7 @@ export class AboutController {
   }
 
   @Put()
-  update(@Req() req, @Body() updateData: { bio?: string; description?: string }) {
+  update(@Req() req, @Body() updateData: { bio?: string; description?: string; yearsExperience?: number }) {
     return this.aboutService.updateAbout(req.user.id, updateData);
   }
 }

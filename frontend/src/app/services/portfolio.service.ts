@@ -122,6 +122,14 @@ export class PortfolioService {
   private mapPortfolioData(data: any) {
     if (!data) return;
 
+    // Extract social links from array if present
+    const socialMap: Record<string, string> = {};
+    if (Array.isArray(data.socialLinks)) {
+      for (const link of data.socialLinks) {
+        socialMap[link.platform?.toLowerCase()] = link.url ?? '';
+      }
+    }
+
     // Map portfolio info
     this.portfolioData.set({
       id: data.id,
@@ -170,19 +178,19 @@ export class PortfolioService {
       yearsExperience: Number(data.yearsExperience ?? 0),
     });
 
-    // Map contact
+    // Map contact - use socialMap if available, otherwise fall back to direct fields
     this.contact.set({
       email: data.email ?? '',
       phone: data.phone ?? '',
       location: data.location ?? '',
-      github: data.github ?? '',
-      linkedin: data.linkedin ?? '',
-      medium: data.medium ?? '',
-      tableau: data.tableau ?? '',
-      leetcode: data.leetcode ?? '',
-      instagram: data.instagram ?? '',
-      youtube: data.youtube ?? '',
-      portfolio: data.website ?? '',
+      github: socialMap['github'] ?? data.github ?? '',
+      linkedin: socialMap['linkedin'] ?? data.linkedin ?? '',
+      medium: socialMap['medium'] ?? data.medium ?? '',
+      tableau: socialMap['tableau'] ?? data.tableau ?? '',
+      leetcode: socialMap['leetcode'] ?? data.leetcode ?? '',
+      instagram: socialMap['instagram'] ?? data.instagram ?? '',
+      youtube: socialMap['youtube'] ?? data.youtube ?? '',
+      portfolio: data.website ?? data.portfolio ?? '',
     });
 
     // Map skills
@@ -514,11 +522,16 @@ export class PortfolioService {
       )
       .toPromise();
 
-    return response?.data?.downloadUrl ?? '';
+    // Convert relative URL to absolute (backend is on Render, frontend on Vercel)
+    const downloadUrl = response?.data?.downloadUrl ?? '';
+    if (downloadUrl.startsWith('/')) {
+      return `https://aman-portfolio-app.onrender.com${downloadUrl}`;
+    }
+    return downloadUrl;
   }
 
   getResumeDownloadUrl(filename: string): string {
-    return `${API_BASE_URL}/resume/download/${filename}`;
+    return `https://aman-portfolio-app.onrender.com/api/resume/download/${filename}`;
   }
 
   // Mappers

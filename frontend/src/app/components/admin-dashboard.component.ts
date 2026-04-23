@@ -989,6 +989,13 @@ export class AdminDashboardComponent {
   };
 
   constructor() {
+    // Auto-load users when switching to all-users tab
+    effect(() => {
+      if (this.currentTab() === 'all-users') {
+        this.loadAllUsers();
+      }
+    });
+
     effect(() => {
       this.aboutForm = { ...this.portfolioService.about() };
       this.contactForm = { ...this.portfolioService.contact() };
