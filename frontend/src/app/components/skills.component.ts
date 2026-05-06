@@ -4,7 +4,7 @@ import { PortfolioService } from '../services/portfolio.service';
 import { Skill } from '../models/portfolio.model';
 
 type SkillGroup = {
-  key: Skill['category'];
+  key: string;
   label: string;
   icon: string;
   skills: Skill[];
@@ -71,20 +71,39 @@ export class SkillsComponent {
   private portfolioService = inject(PortfolioService);
 
   skillGroups = computed(() => {
-    const metadata: Record<Skill['category'], { label: string; icon: string }> = {
+    const metadata: Record<string, { label: string; icon: string }> = {
       frontend: { label: 'Frontend Development', icon: '🎨' },
       backend: { label: 'Backend Development', icon: '⚙️' },
       database: { label: 'Databases', icon: '🗄️' },
       tools: { label: 'Tools & Platforms', icon: '🛠️' },
     };
 
-    return (Object.keys(metadata) as Skill['category'][])
-      .map((category) => ({
-        key: category,
-        label: metadata[category].label,
-        icon: metadata[category].icon,
-        skills: this.portfolioService.getSkillsByCategory(category),
-      }))
+    const orderedCategories = Array.from(
+      new Set(this.portfolioService.getSkills().map((skill) => skill.category))
+    );
+
+    return orderedCategories
+      .map((category) => {
+        const meta = metadata[category] ?? {
+          label: this.formatCategory(category),
+          icon: '💡',
+        };
+
+        return {
+          key: category,
+          label: meta.label,
+          icon: meta.icon,
+          skills: this.portfolioService.getSkillsByCategory(category),
+        };
+      })
       .filter((group) => group.skills.length);
   });
+
+  private formatCategory(category: string) {
+    return category
+      .split(/[-_\s]+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+  }
 }

@@ -74,6 +74,70 @@ export class PortfoliosService {
   }
 
   /**
+   * Admin preview by user ID or portfolio ID
+   */
+  async getPortfolioForAdmin(identifier: number) {
+    const portfolio = await this.prisma.portfolio.findFirst({
+      where: {
+        OR: [
+          { userId: identifier },
+          { id: identifier },
+        ],
+      },
+      include: {
+        theme: true,
+        skills: {
+          where: { isVisible: true },
+          orderBy: { order: 'asc' },
+        },
+        projects: {
+          where: { isVisible: true },
+          include: { technologies: true },
+          orderBy: { order: 'asc' },
+        },
+        experiences: {
+          where: { isVisible: true },
+          orderBy: { startDate: 'desc' },
+        },
+        education: {
+          where: { isVisible: true },
+          orderBy: { startDate: 'desc' },
+        },
+        socialLinks: {
+          where: { isVisible: true },
+          orderBy: { order: 'asc' },
+        },
+        user: {
+          select: {
+            username: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!portfolio) {
+      throw new NotFoundException('Portfolio not found');
+    }
+
+    const formattedProjects = portfolio.projects.map((project) => ({
+      ...project,
+      technologies: project.technologies.map((t) => t.technologyName),
+    }));
+
+    return {
+      success: true,
+      message: 'Portfolio retrieved successfully',
+      data: {
+        ...portfolio,
+        projects: formattedProjects,
+      },
+    };
+  }
+
+  /**
    * Get public portfolio by username or slug
    */
   async getPublicPortfolio(identifier: string) {
@@ -109,6 +173,7 @@ export class PortfoliosService {
             firstName: true,
             lastName: true,
             photoUrl: true,
+            email: true,
           },
         },
       },
@@ -142,6 +207,15 @@ export class PortfoliosService {
               socialLinks: {
                 where: { isVisible: true },
                 orderBy: { order: 'asc' },
+              },
+              user: {
+                select: {
+                  username: true,
+                  firstName: true,
+                  lastName: true,
+                  photoUrl: true,
+                  email: true,
+                },
               },
             },
           },

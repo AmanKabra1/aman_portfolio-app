@@ -6,8 +6,8 @@ import {
   Param,
   Query,
   Body,
-  ParseIntPipe,
   UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -32,10 +32,12 @@ export class AdminController {
    */
   @Get('users')
   getAllUsers(
-    @Query('page', ParseIntPipe) page: number = 1,
-    @Query('limit', ParseIntPipe) limit: number = 20,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.adminService.getAllUsers(page, limit);
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 20;
+    return this.adminService.getAllUsers(pageNum, limitNum);
   }
 
   /**
@@ -70,9 +72,11 @@ export class AdminController {
    */
   @Get('portfolios')
   getAllPortfolios(
-    @Query('page', ParseIntPipe) page: number = 1,
-    @Query('limit', ParseIntPipe) limit: number = 20,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.adminService.getAllPortfolios(page, limit);
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 20;
+    return this.adminService.getAllPortfolios(pageNum, limitNum);
   }
 }

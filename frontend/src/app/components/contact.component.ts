@@ -4,6 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { EMAILJS_CONFIG, isEmailJsConfigured } from '../config/email.config';
 import { PortfolioService } from '../services/portfolio.service';
 
+type ContactField = 'name' | 'email' | 'message';
+type ContactFieldErrors = Partial<Record<ContactField, string>>;
+
 @Component({
   selector: 'app-contact',
   standalone: true,
@@ -92,10 +95,10 @@ import { PortfolioService } from '../services/portfolio.service';
           </div>
 
           <div class="card p-8">
-            <form (ngSubmit)="submitForm()" class="space-y-4">
-              @if (contact().email) {
+            <form (ngSubmit)="submitForm()" class="space-y-4" novalidate>
+              @if (resolvedRecipientEmail()) {
               <div class="rounded-lg border border-primary-200 bg-primary-50 px-4 py-3 text-sm text-primary-700 dark:border-primary-500/30 dark:bg-primary-500/10 dark:text-primary-300">
-                Messages from this form will be sent to {{ contact().email }}.
+                Messages from this form will be sent to {{ resolvedRecipientEmail() }}.
               </div>
               }
 
@@ -105,11 +108,19 @@ import { PortfolioService } from '../services/portfolio.service';
                   type="text"
                   id="name"
                   [(ngModel)]="formData.name"
+                  (ngModelChange)="validateField('name')"
+                  (blur)="validateField('name')"
                   name="name"
                   required
                   class="w-full px-4 py-3 bg-white dark:bg-dark-800 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+                  [class.border-red-400]="fieldErrors().name"
+                  [class.dark:border-red-500]="fieldErrors().name"
                   placeholder="Your name"
                 />
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Required format: at least 2 letters, for example Aman Sharma.</p>
+                @if (fieldErrors().name) {
+                  <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ fieldErrors().name }}</p>
+                }
               </div>
 
               <div>
@@ -118,11 +129,19 @@ import { PortfolioService } from '../services/portfolio.service';
                   type="email"
                   id="email"
                   [(ngModel)]="formData.email"
+                  (ngModelChange)="validateField('email')"
+                  (blur)="validateField('email')"
                   name="email"
                   required
                   class="w-full px-4 py-3 bg-white dark:bg-dark-800 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+                  [class.border-red-400]="fieldErrors().email"
+                  [class.dark:border-red-500]="fieldErrors().email"
                   placeholder="Your email"
                 />
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Required format: name&#64;example.com.</p>
+                @if (fieldErrors().email) {
+                  <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ fieldErrors().email }}</p>
+                }
               </div>
 
               <div>
@@ -130,21 +149,31 @@ import { PortfolioService } from '../services/portfolio.service';
                 <textarea
                   id="message"
                   [(ngModel)]="formData.message"
+                  (ngModelChange)="validateField('message')"
+                  (blur)="validateField('message')"
                   name="message"
                   required
                   rows="5"
                   class="w-full px-4 py-3 bg-white dark:bg-dark-800 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white resize-none"
+                  [class.border-red-400]="fieldErrors().message"
+                  [class.dark:border-red-500]="fieldErrors().message"
                   placeholder="Your message"
                 ></textarea>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Required format: at least 10 characters with your question or request.</p>
+                @if (fieldErrors().message) {
+                  <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ fieldErrors().message }}</p>
+                }
               </div>
 
-              <button type="submit" class="w-full btn-primary" [disabled]="!canSendMessage() || isSending()">
+              <button type="submit" class="w-full btn-primary" [disabled]="!canSendMessage() || !isFormValid() || isSending()">
                 <span>
                   {{
                     !canSendMessage()
                       ? 'Email Not Available'
                       : isSending()
                         ? 'Sending...'
+                        : !isFormValid()
+                          ? 'Fill Contact Form'
                         : 'Send Message'
                   }}
                 </span>
@@ -183,20 +212,36 @@ export class ContactComponent {
   submitted = signal(false);
   isSending = signal(false);
   errorMessage = signal('');
+  fieldErrors = signal<ContactFieldErrors>({});
   contact = this.portfolioService.contact;
-  canSendMessage = computed(() => Boolean(this.contact().email) && isEmailJsConfigured());
+  portfolio = this.portfolioService.getPortfolio;
+  resolvedRecipientEmail = computed(() =>
+    this.contact().email?.trim() ||
+    this.portfolio()?.email?.trim() ||
+    this.portfolio()?.user?.email?.trim() ||
+    ''
+  );
+  canSendMessage = computed(() => Boolean(this.recipientEmail()) && isEmailJsConfigured());
   directEmailLink = computed(() =>
-    this.contact().email
-      ? `mailto:${this.contact().email}?subject=${encodeURIComponent('Portfolio enquiry')}`
+    this.recipientEmail()
+      ? `mailto:${this.recipientEmail()}?subject=${encodeURIComponent('Portfolio enquiry')}`
       : '#contact'
   );
 
   async submitForm() {
-    const email = this.contact().email;
+    const recipientEmail = this.recipientEmail();
+    const name = this.formData.name.trim();
+    const fromEmail = this.formData.email.trim();
+    const message = this.formData.message.trim();
 
     this.errorMessage.set('');
 
-    if (!email) {
+    if (!this.validateAllFields()) {
+      this.errorMessage.set('Please fill all fields in the correct format.');
+      return;
+    }
+
+    if (!recipientEmail) {
       this.errorMessage.set('Contact email is not available right now.');
       return;
     }
@@ -220,19 +265,28 @@ export class ContactComponent {
           template_id: EMAILJS_CONFIG.templateId,
           user_id: EMAILJS_CONFIG.publicKey,
           template_params: {
-            to_email: EMAILJS_CONFIG.recipientEmail,
-            to_name: 'Madhav',
-            from_name: this.formData.name,
-            from_email: this.formData.email,
-            reply_to: this.formData.email,
-            subject: `Portfolio enquiry from ${this.formData.name || 'Website visitor'}`,
-            message: this.formData.message,
+            to_email: recipientEmail,
+            recipient_email: recipientEmail,
+            owner_email: recipientEmail,
+            user_email: recipientEmail,
+            email_to: recipientEmail,
+            toEmail: recipientEmail,
+            to: recipientEmail,
+            email: recipientEmail,
+            recipient: recipientEmail,
+            to_name: this.portfolioService.getPortfolio()?.title || 'Portfolio Owner',
+            from_name: name,
+            from_email: fromEmail,
+            reply_to: fromEmail,
+            subject: `Portfolio enquiry from ${name}`,
+            message,
           },
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Unable to send message right now.');
+        const details = await response.text();
+        throw new Error(details || 'Unable to send message right now.');
       }
 
       this.submitted.set(true);
@@ -247,5 +301,73 @@ export class ContactComponent {
     setTimeout(() => {
       this.submitted.set(false);
     }, 3000);
+  }
+
+  private recipientEmail() {
+    return this.resolvedRecipientEmail();
+  }
+
+  isFormValid() {
+    return (
+      !this.getFieldError('name') &&
+      !this.getFieldError('email') &&
+      !this.getFieldError('message')
+    );
+  }
+
+  validateField(field: ContactField) {
+    const message = this.getFieldError(field);
+
+    this.fieldErrors.update((errors) => {
+      const next = { ...errors };
+      if (message) {
+        next[field] = message;
+      } else {
+        delete next[field];
+      }
+      return next;
+    });
+
+    this.errorMessage.set('');
+  }
+
+  private validateAllFields() {
+    const errors: ContactFieldErrors = {};
+
+    for (const field of ['name', 'email', 'message'] as ContactField[]) {
+      const message = this.getFieldError(field);
+      if (message) {
+        errors[field] = message;
+      }
+    }
+
+    this.fieldErrors.set(errors);
+    return Object.keys(errors).length === 0;
+  }
+
+  private getFieldError(field: ContactField) {
+    const value = this.formData[field].trim();
+
+    if (!value) {
+      return `${this.fieldLabel(field)} is required.`;
+    }
+
+    if (field === 'name' && !/^[A-Za-z][A-Za-z .'-]{1,}$/.test(value)) {
+      return 'Enter a valid name, for example Aman Sharma.';
+    }
+
+    if (field === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      return 'Enter a valid email, for example name@example.com.';
+    }
+
+    if (field === 'message' && value.length < 10) {
+      return 'Message must be at least 10 characters.';
+    }
+
+    return '';
+  }
+
+  private fieldLabel(field: ContactField) {
+    return field === 'email' ? 'Email' : field === 'name' ? 'Name' : 'Message';
   }
 }

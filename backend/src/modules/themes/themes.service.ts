@@ -9,12 +9,22 @@ export class ThemesService {
 
   // Predefined theme presets
   private readonly presets = {
+    default: {
+      primaryColor: '#111111',
+      secondaryColor: '#6B7280',
+      backgroundColor: '#FFFFFF',
+      textColor: '#111111',
+      accentColor: '#000000',
+      heroBackgroundImage: '/assets/image.png',
+      colorMode: 'light',
+    },
     blue: {
       primaryColor: '#3B82F6',
       secondaryColor: '#10B981',
       backgroundColor: '#FFFFFF',
       textColor: '#1F2937',
       accentColor: '#F59E0B',
+      colorMode: 'light',
     },
     green: {
       primaryColor: '#10B981',
@@ -22,6 +32,7 @@ export class ThemesService {
       backgroundColor: '#FFFFFF',
       textColor: '#1F2937',
       accentColor: '#8B5CF6',
+      colorMode: 'light',
     },
     purple: {
       primaryColor: '#8B5CF6',
@@ -29,6 +40,7 @@ export class ThemesService {
       backgroundColor: '#FFFFFF',
       textColor: '#1F2937',
       accentColor: '#F59E0B',
+      colorMode: 'light',
     },
     orange: {
       primaryColor: '#F97316',
@@ -36,6 +48,7 @@ export class ThemesService {
       backgroundColor: '#FFFFFF',
       textColor: '#1F2937',
       accentColor: '#3B82F6',
+      colorMode: 'light',
     },
     red: {
       primaryColor: '#EF4444',
@@ -43,6 +56,7 @@ export class ThemesService {
       backgroundColor: '#FFFFFF',
       textColor: '#1F2937',
       accentColor: '#10B981',
+      colorMode: 'light',
     },
     dark: {
       primaryColor: '#3B82F6',
@@ -50,6 +64,7 @@ export class ThemesService {
       backgroundColor: '#111827',
       textColor: '#F9FAFB',
       accentColor: '#F59E0B',
+      colorMode: 'dark',
     },
     light: {
       primaryColor: '#6366F1',
@@ -57,6 +72,7 @@ export class ThemesService {
       backgroundColor: '#F9FAFB',
       textColor: '#111827',
       accentColor: '#F59E0B',
+      colorMode: 'light',
     },
   };
 
@@ -83,11 +99,13 @@ export class ThemesService {
       const theme = await this.prisma.portfolioTheme.create({
         data: {
           portfolioId: portfolio.id,
-          primaryColor: '#3B82F6',
-          secondaryColor: '#10B981',
+          primaryColor: '#111111',
+          secondaryColor: '#6B7280',
           backgroundColor: '#FFFFFF',
-          textColor: '#1F2937',
-          accentColor: '#F59E0B',
+          textColor: '#111111',
+          accentColor: '#000000',
+          heroBackgroundImage: '/assets/image.png',
+          colorMode: 'light',
           template: 'modern',
         },
       });
@@ -191,11 +209,13 @@ export class ThemesService {
     const theme = await this.prisma.portfolioTheme.update({
       where: { portfolioId: portfolio.id },
       data: {
-        primaryColor: '#3B82F6',
-        secondaryColor: '#10B981',
+        primaryColor: '#111111',
+        secondaryColor: '#6B7280',
         backgroundColor: '#FFFFFF',
-        textColor: '#1F2937',
-        accentColor: '#F59E0B',
+        textColor: '#111111',
+        accentColor: '#000000',
+        heroBackgroundImage: '/assets/image.png',
+        colorMode: 'light',
         fontFamily: 'Inter',
         headingFont: 'Inter',
         fontSize: 'medium',
@@ -296,11 +316,13 @@ export class ThemesService {
     }
 
     const theme = portfolio.theme || {
-      primaryColor: '#3B82F6',
-      secondaryColor: '#10B981',
+      primaryColor: '#111111',
+      secondaryColor: '#6B7280',
       backgroundColor: '#FFFFFF',
-      textColor: '#1F2937',
-      accentColor: '#F59E0B',
+      textColor: '#111111',
+      accentColor: '#000000',
+      heroBackgroundImage: '/assets/image.png',
+      colorMode: 'light',
       fontFamily: 'Inter',
       headingFont: 'Inter',
       fontSize: 'medium',

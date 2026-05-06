@@ -1,11 +1,14 @@
 import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { PortfolioService } from '../services/portfolio.service';
 import { AuthService } from '../services/auth.service';
+import { ToastService } from '../services/toast.service';
 import { AboutData, ContactData, Education, Experience, Project, Skill, SocialLink } from '../models/portfolio.model';
 
 type ValidationErrors = Record<string, string>;
+type Toast = { type: 'success' | 'error'; message: string };
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -13,6 +16,16 @@ type ValidationErrors = Record<string, string>;
   imports: [CommonModule, FormsModule],
   template: `
     <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(249,115,22,0.10),_transparent_26%),linear-gradient(180deg,#fff7ed_0%,#ffffff_38%,#f8fafc_100%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(249,115,22,0.16),_transparent_24%),linear-gradient(180deg,#171717_0%,#111827_42%,#0f172a_100%)]">
+      @if (toast()) {
+        <div
+          class="toast-alert"
+          [class.toast-alert--success]="toast()?.type === 'success'"
+          [class.toast-alert--error]="toast()?.type === 'error'"
+        >
+          {{ toast()?.message }}
+        </div>
+      }
+
       <header class="sticky top-0 z-40 border-b border-white/50 dark:border-white/10 bg-white/80 dark:bg-slate-950/70 backdrop-blur-xl shadow-[0_12px_36px_rgba(15,23,42,0.06)]">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -28,6 +41,13 @@ type ValidationErrors = Record<string, string>;
               <p class="text-[11px] uppercase tracking-[0.22em] text-gray-500 dark:text-gray-400">Signed In As</p>
               <p class="text-sm font-semibold text-dark-900 dark:text-white mt-1">{{ authService.user()?.email }}</p>
             </div>
+            <button
+              class="btn-secondary"
+              (click)="toggleThemeMode()"
+              [attr.aria-label]="isDarkMode() ? 'Switch to light mode' : 'Switch to dark mode'"
+            >
+              {{ isDarkMode() ? '☀ Light' : '🌙 Dark' }}
+            </button>
             <button class="btn-secondary" (click)="refresh()">Refresh</button>
             <button class="btn-primary" (click)="authService.logout()">Logout</button>
           </div>
@@ -59,18 +79,6 @@ type ValidationErrors = Record<string, string>;
       </header>
 
       <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
-        @if (status()) {
-          <div class="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 px-4 py-3 text-sm text-green-700 dark:text-green-300">
-            {{ status() }}
-          </div>
-        }
-
-        @if (error()) {
-          <div class="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-300">
-            {{ error() }}
-          </div>
-        }
-
         <!-- My Portfolio Tab -->
         @if (currentTab() === 'my-portfolio') {
           <section class="grid sm:grid-cols-2 xl:grid-cols-5 gap-4">
@@ -113,21 +121,21 @@ type ValidationErrors = Record<string, string>;
               <div class="space-y-4">
                 <div>
                   <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Bio</label>
-                  <textarea [(ngModel)]="aboutForm.bio" (ngModelChange)="clearValidationError('about.bio')" rows="4" class="w-full input-base" [class.input-error]="hasValidationError('about.bio')"></textarea>
+                  <textarea [(ngModel)]="aboutForm.bio" (ngModelChange)="clearValidationError('about.bio')" rows="4" class="w-full input-base" [class.input-error]="hasValidationError('about.bio')" placeholder="Frontend developer with 4+ years building admin dashboards and public-facing web apps."></textarea>
                   @if (hasValidationError('about.bio')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['about.bio'] }}</p>
                   }
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Description</label>
-                  <textarea [(ngModel)]="aboutForm.description" (ngModelChange)="clearValidationError('about.description')" rows="4" class="w-full input-base" [class.input-error]="hasValidationError('about.description')"></textarea>
+                  <textarea [(ngModel)]="aboutForm.description" (ngModelChange)="clearValidationError('about.description')" rows="4" class="w-full input-base" [class.input-error]="hasValidationError('about.description')" placeholder="I design and ship polished web products, improve UX for complex workflows, and work comfortably across frontend and backend systems."></textarea>
                   @if (hasValidationError('about.description')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['about.description'] }}</p>
                   }
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Years of Experience</label>
-                  <input [(ngModel)]="aboutForm.yearsExperience" (ngModelChange)="clearValidationError('about.yearsExperience')" type="number" class="w-full input-base" [class.input-error]="hasValidationError('about.yearsExperience')" />
+                  <input [(ngModel)]="aboutForm.yearsExperience" (ngModelChange)="clearValidationError('about.yearsExperience')" type="number" class="w-full input-base" [class.input-error]="hasValidationError('about.yearsExperience')" placeholder="4" />
                   @if (hasValidationError('about.yearsExperience')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['about.yearsExperience'] }}</p>
                   }
@@ -147,77 +155,77 @@ type ValidationErrors = Record<string, string>;
               <div class="grid md:grid-cols-2 gap-4">
                 <div>
                   <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Email</label>
-                  <input [(ngModel)]="contactForm.email" (ngModelChange)="clearValidationError('contact.email')" type="email" class="w-full input-base" [class.input-error]="hasValidationError('contact.email')" />
+                  <input [(ngModel)]="contactForm.email" (ngModelChange)="clearValidationError('contact.email')" type="email" class="w-full input-base" [class.input-error]="hasValidationError('contact.email')" placeholder="john@example.com" />
                   @if (hasValidationError('contact.email')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.email'] }}</p>
                   }
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Phone</label>
-                  <input [(ngModel)]="contactForm.phone" (ngModelChange)="clearValidationError('contact.phone')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.phone')" />
+                  <input [(ngModel)]="contactForm.phone" (ngModelChange)="clearValidationError('contact.phone')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.phone')" placeholder="+91 98765 43210" />
                   @if (hasValidationError('contact.phone')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.phone'] }}</p>
                   }
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Location</label>
-                  <input [(ngModel)]="contactForm.location" (ngModelChange)="clearValidationError('contact.location')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.location')" />
+                  <input [(ngModel)]="contactForm.location" (ngModelChange)="clearValidationError('contact.location')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.location')" placeholder="Bengaluru, India" />
                   @if (hasValidationError('contact.location')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.location'] }}</p>
                   }
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">GitHub</label>
-                  <input [(ngModel)]="contactForm.github" (ngModelChange)="clearValidationError('contact.github')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.github')" />
+                  <input [(ngModel)]="contactForm.github" (ngModelChange)="clearValidationError('contact.github')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.github')" placeholder="https://github.com/johndoe" />
                   @if (hasValidationError('contact.github')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.github'] }}</p>
                   }
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">LinkedIn</label>
-                  <input [(ngModel)]="contactForm.linkedin" (ngModelChange)="clearValidationError('contact.linkedin')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.linkedin')" />
+                  <input [(ngModel)]="contactForm.linkedin" (ngModelChange)="clearValidationError('contact.linkedin')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.linkedin')" placeholder="https://linkedin.com/in/johndoe" />
                   @if (hasValidationError('contact.linkedin')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.linkedin'] }}</p>
                   }
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Medium</label>
-                  <input [(ngModel)]="contactForm.medium" (ngModelChange)="clearValidationError('contact.medium')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.medium')" />
+                  <input [(ngModel)]="contactForm.medium" (ngModelChange)="clearValidationError('contact.medium')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.medium')" placeholder="https://medium.com/@johndoe" />
                   @if (hasValidationError('contact.medium')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.medium'] }}</p>
                   }
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Tableau</label>
-                  <input [(ngModel)]="contactForm.tableau" (ngModelChange)="clearValidationError('contact.tableau')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.tableau')" />
+                  <input [(ngModel)]="contactForm.tableau" (ngModelChange)="clearValidationError('contact.tableau')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.tableau')" placeholder="https://public.tableau.com/app/profile/john" />
                   @if (hasValidationError('contact.tableau')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.tableau'] }}</p>
                   }
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">LeetCode</label>
-                  <input [(ngModel)]="contactForm.leetcode" (ngModelChange)="clearValidationError('contact.leetcode')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.leetcode')" />
+                  <input [(ngModel)]="contactForm.leetcode" (ngModelChange)="clearValidationError('contact.leetcode')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.leetcode')" placeholder="https://leetcode.com/johndoe" />
                   @if (hasValidationError('contact.leetcode')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.leetcode'] }}</p>
                   }
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Instagram</label>
-                  <input [(ngModel)]="contactForm.instagram" (ngModelChange)="clearValidationError('contact.instagram')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.instagram')" />
+                  <input [(ngModel)]="contactForm.instagram" (ngModelChange)="clearValidationError('contact.instagram')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.instagram')" placeholder="https://instagram.com/johndoe" />
                   @if (hasValidationError('contact.instagram')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.instagram'] }}</p>
                   }
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">YouTube</label>
-                  <input [(ngModel)]="contactForm.youtube" (ngModelChange)="clearValidationError('contact.youtube')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.youtube')" />
+                  <input [(ngModel)]="contactForm.youtube" (ngModelChange)="clearValidationError('contact.youtube')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.youtube')" placeholder="https://youtube.com/@johndoe" />
                   @if (hasValidationError('contact.youtube')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.youtube'] }}</p>
                   }
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Portfolio Website</label>
-                  <input [(ngModel)]="contactForm.portfolio" (ngModelChange)="clearValidationError('contact.portfolio')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.portfolio')" />
+                  <input [(ngModel)]="contactForm.portfolio" (ngModelChange)="clearValidationError('contact.portfolio')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('contact.portfolio')" placeholder="https://aman.dev" />
                   @if (hasValidationError('contact.portfolio')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['contact.portfolio'] }}</p>
                   }
@@ -275,24 +283,19 @@ type ValidationErrors = Record<string, string>;
               </div>
               <div class="space-y-4">
                 <div>
-                  <input [(ngModel)]="skillForm.name" (ngModelChange)="clearValidationError('skill.name')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('skill.name')" placeholder="Skill name" />
+                  <input [(ngModel)]="skillForm.name" (ngModelChange)="clearValidationError('skill.name')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('skill.name')" placeholder="Angular" />
                   @if (hasValidationError('skill.name')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['skill.name'] }}</p>
                   }
                 </div>
                 <div>
-                  <select [(ngModel)]="skillForm.category" (ngModelChange)="clearValidationError('skill.category')" class="w-full input-base" [class.input-error]="hasValidationError('skill.category')">
-                    <option value="frontend">Frontend</option>
-                    <option value="backend">Backend</option>
-                    <option value="database">Database</option>
-                    <option value="tools">Tools</option>
-                  </select>
+                  <input [(ngModel)]="skillForm.category" (ngModelChange)="clearValidationError('skill.category')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('skill.category')" placeholder="frontend, backend, DevOps, Data Science" />
                   @if (hasValidationError('skill.category')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['skill.category'] }}</p>
                   }
                 </div>
                 <div>
-                  <input [(ngModel)]="skillForm.level" (ngModelChange)="clearValidationError('skill.level')" type="number" class="w-full input-base" [class.input-error]="hasValidationError('skill.level')" placeholder="Level" />
+                  <input [(ngModel)]="skillForm.level" (ngModelChange)="clearValidationError('skill.level')" type="number" class="w-full input-base" [class.input-error]="hasValidationError('skill.level')" placeholder="90" />
                   @if (hasValidationError('skill.level')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['skill.level'] }}</p>
                   }
@@ -339,37 +342,37 @@ type ValidationErrors = Record<string, string>;
               </div>
               <div class="space-y-4">
                 <div>
-                  <input [(ngModel)]="projectForm.title" (ngModelChange)="clearValidationError('project.title')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('project.title')" placeholder="Title" />
+                  <input [(ngModel)]="projectForm.title" (ngModelChange)="clearValidationError('project.title')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('project.title')" placeholder="Portfolio Builder Platform" />
                   @if (hasValidationError('project.title')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['project.title'] }}</p>
                   }
                 </div>
                 <div>
-                  <textarea [(ngModel)]="projectForm.description" (ngModelChange)="clearValidationError('project.description')" rows="4" class="w-full input-base" [class.input-error]="hasValidationError('project.description')" placeholder="Description"></textarea>
+                  <textarea [(ngModel)]="projectForm.description" (ngModelChange)="clearValidationError('project.description')" rows="4" class="w-full input-base" [class.input-error]="hasValidationError('project.description')" placeholder="Built a multi-user portfolio platform with auth, theme controls, resume export, and public profile pages."></textarea>
                   @if (hasValidationError('project.description')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['project.description'] }}</p>
                   }
                 </div>
                 <div>
-                  <input [(ngModel)]="projectForm.image" (ngModelChange)="clearValidationError('project.image')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('project.image')" placeholder="Image URL" />
+                  <input [(ngModel)]="projectForm.image" (ngModelChange)="clearValidationError('project.image')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('project.image')" placeholder="https://images.example.com/project-cover.jpg" />
                   @if (hasValidationError('project.image')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['project.image'] }}</p>
                   }
                 </div>
                 <div>
-                  <input [(ngModel)]="projectForm.liveLink" (ngModelChange)="clearValidationError('project.liveLink')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('project.liveLink')" placeholder="Live link" />
+                  <input [(ngModel)]="projectForm.liveLink" (ngModelChange)="clearValidationError('project.liveLink')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('project.liveLink')" placeholder="https://app.example.com" />
                   @if (hasValidationError('project.liveLink')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['project.liveLink'] }}</p>
                   }
                 </div>
                 <div>
-                  <input [(ngModel)]="projectForm.githubLink" (ngModelChange)="clearValidationError('project.githubLink')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('project.githubLink')" placeholder="GitHub link" />
+                  <input [(ngModel)]="projectForm.githubLink" (ngModelChange)="clearValidationError('project.githubLink')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('project.githubLink')" placeholder="https://github.com/johndoe/portfolio-app" />
                   @if (hasValidationError('project.githubLink')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['project.githubLink'] }}</p>
                   }
                 </div>
                 <div>
-                  <input [(ngModel)]="projectForm.technologies" (ngModelChange)="clearValidationError('project.technologies')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('project.technologies')" placeholder="Technologies separated by comma" />
+                  <input [(ngModel)]="projectForm.technologies" (ngModelChange)="clearValidationError('project.technologies')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('project.technologies')" placeholder="Angular, NestJS, Prisma, MySQL" />
                   @if (hasValidationError('project.technologies')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['project.technologies'] }}</p>
                   }
@@ -421,25 +424,25 @@ type ValidationErrors = Record<string, string>;
               </div>
               <div class="space-y-4">
                 <div>
-                  <input [(ngModel)]="experienceForm.company" (ngModelChange)="clearValidationError('experience.company')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('experience.company')" placeholder="Company" />
+                  <input [(ngModel)]="experienceForm.company" (ngModelChange)="clearValidationError('experience.company')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('experience.company')" placeholder="Acme Technologies" />
                   @if (hasValidationError('experience.company')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['experience.company'] }}</p>
                   }
                 </div>
                 <div>
-                  <input [(ngModel)]="experienceForm.position" (ngModelChange)="clearValidationError('experience.position')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('experience.position')" placeholder="Position" />
+                  <input [(ngModel)]="experienceForm.position" (ngModelChange)="clearValidationError('experience.position')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('experience.position')" placeholder="Frontend Developer" />
                   @if (hasValidationError('experience.position')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['experience.position'] }}</p>
                   }
                 </div>
                 <div>
-                  <input [(ngModel)]="experienceForm.duration" (ngModelChange)="clearValidationError('experience.duration')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('experience.duration')" placeholder="Duration" />
+                  <input [(ngModel)]="experienceForm.duration" (ngModelChange)="clearValidationError('experience.duration')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('experience.duration')" placeholder="Jan 2022 - Present" />
                   @if (hasValidationError('experience.duration')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['experience.duration'] }}</p>
                   }
                 </div>
                 <div>
-                  <textarea [(ngModel)]="experienceForm.description" (ngModelChange)="clearValidationError('experience.description')" rows="4" class="w-full input-base" [class.input-error]="hasValidationError('experience.description')" placeholder="Description"></textarea>
+                  <textarea [(ngModel)]="experienceForm.description" (ngModelChange)="clearValidationError('experience.description')" rows="4" class="w-full input-base" [class.input-error]="hasValidationError('experience.description')" placeholder="Built reusable Angular components, improved performance, and collaborated with backend and design teams."></textarea>
                   @if (hasValidationError('experience.description')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['experience.description'] }}</p>
                   }
@@ -502,22 +505,22 @@ type ValidationErrors = Record<string, string>;
               </div>
               <div class="space-y-4">
                 <div>
-                  <input [(ngModel)]="educationForm.institution" (ngModelChange)="clearValidationError('education.institution')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('education.institution')" placeholder="Institution" />
+                  <input [(ngModel)]="educationForm.institution" (ngModelChange)="clearValidationError('education.institution')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('education.institution')" placeholder="Delhi Technological University" />
                   @if (hasValidationError('education.institution')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['education.institution'] }}</p>
                   }
                 </div>
                 <div>
-                  <input [(ngModel)]="educationForm.degree" (ngModelChange)="clearValidationError('education.degree')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('education.degree')" placeholder="Degree" />
+                  <input [(ngModel)]="educationForm.degree" (ngModelChange)="clearValidationError('education.degree')" type="text" class="w-full input-base" [class.input-error]="hasValidationError('education.degree')" placeholder="B.Tech in Computer Science" />
                   @if (hasValidationError('education.degree')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['education.degree'] }}</p>
                   }
                 </div>
                 <div>
-                  <input [(ngModel)]="educationForm.field" type="text" class="w-full input-base" placeholder="Field of study" />
+                  <input [(ngModel)]="educationForm.field" type="text" class="w-full input-base" placeholder="Software Engineering" />
                 </div>
                 <div>
-                  <input [(ngModel)]="educationForm.grade" type="text" class="w-full input-base" placeholder="Grade/GPA" />
+                  <input [(ngModel)]="educationForm.grade" type="text" class="w-full input-base" placeholder="8.6 CGPA" />
                 </div>
                 <div>
                   <input [(ngModel)]="educationForm.startDate" (ngModelChange)="clearValidationError('education.startDate')" type="date" class="w-full input-base" [class.input-error]="hasValidationError('education.startDate')" />
@@ -533,7 +536,7 @@ type ValidationErrors = Record<string, string>;
                   Currently studying
                 </label>
                 <div>
-                  <textarea [(ngModel)]="educationForm.description" rows="4" class="w-full input-base" placeholder="Description"></textarea>
+                  <textarea [(ngModel)]="educationForm.description" rows="4" class="w-full input-base" placeholder="Focused on data structures, databases, and full-stack application development."></textarea>
                 </div>
                 <button class="btn-primary w-full" (click)="saveEducation()">{{ editingEducationId() ? 'Update Education' : 'Add Education' }}</button>
               </div>
@@ -600,13 +603,13 @@ type ValidationErrors = Record<string, string>;
                   }
                 </div>
                 <div>
-                  <input [(ngModel)]="socialLinkForm.url" (ngModelChange)="clearValidationError('socialLink.url')" type="url" class="w-full input-base" [class.input-error]="hasValidationError('socialLink.url')" placeholder="https://..." />
+                  <input [(ngModel)]="socialLinkForm.url" (ngModelChange)="clearValidationError('socialLink.url')" type="url" class="w-full input-base" [class.input-error]="hasValidationError('socialLink.url')" placeholder="https://github.com/johndoe" />
                   @if (hasValidationError('socialLink.url')) {
                     <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ validationErrors()['socialLink.url'] }}</p>
                   }
                 </div>
                 <div>
-                  <input [(ngModel)]="socialLinkForm.username" type="text" class="w-full input-base" placeholder="Username (optional)" />
+                  <input [(ngModel)]="socialLinkForm.username" type="text" class="w-full input-base" placeholder="johndoe" />
                 </div>
                 <button class="btn-primary w-full" (click)="saveSocialLink()">{{ editingSocialLinkId() ? 'Update Link' : 'Add Link' }}</button>
               </div>
@@ -741,6 +744,56 @@ type ValidationErrors = Record<string, string>;
   `,
   styles: [
     `
+      .toast-alert {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 100;
+        max-width: min(24rem, calc(100vw - 2rem));
+        border-radius: 0.75rem;
+        padding: 0.85rem 1rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+        animation: toast-in 160ms ease-out;
+      }
+
+      .toast-alert--success {
+        border: 1px solid rgb(187 247 208);
+        background: rgb(240 253 244);
+        color: rgb(21 128 61);
+      }
+
+      .toast-alert--error {
+        border: 1px solid rgb(254 202 202);
+        background: rgb(254 242 242);
+        color: rgb(185 28 28);
+      }
+
+      :host-context(.dark) .toast-alert--success {
+        border-color: rgb(22 101 52);
+        background: rgb(20 83 45);
+        color: rgb(220 252 231);
+      }
+
+      :host-context(.dark) .toast-alert--error {
+        border-color: rgb(153 27 27);
+        background: rgb(127 29 29);
+        color: rgb(254 226 226);
+      }
+
+      @keyframes toast-in {
+        from {
+          opacity: 0;
+          transform: translateY(-0.35rem);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
       .admin-panel {
         border: 1px solid rgba(255, 255, 255, 0.72);
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.74));
@@ -912,10 +965,15 @@ type ValidationErrors = Record<string, string>;
 export class AdminDashboardComponent {
   portfolioService = inject(PortfolioService);
   authService = inject(AuthService);
+  private toastService = inject(ToastService);
+  private router = inject(Router);
 
   status = signal<string | null>(null);
   error = signal<string | null>(null);
+  toast = signal<Toast | null>(null);
+  private toastTimeout: ReturnType<typeof setTimeout> | null = null;
   validationErrors = signal<ValidationErrors>({});
+  isDarkMode = signal(this.initializeThemeMode());
 
   // Tab navigation
   currentTab = signal<'my-portfolio' | 'all-users' | 'live-updates'>('my-portfolio');
@@ -940,7 +998,7 @@ export class AdminDashboardComponent {
   };
 
   editingSkillId = signal<string | number | null>(null);
-  skillForm = { name: '', category: 'frontend' as Skill['category'], level: 80 };
+  skillForm = { name: '', category: '', level: 80 };
 
   editingProjectId = signal<string | number | null>(null);
   projectForm = {
@@ -989,6 +1047,15 @@ export class AdminDashboardComponent {
   };
 
   constructor() {
+    effect(() => {
+      const isDark = this.isDarkMode();
+      document.documentElement.classList.toggle('dark', isDark);
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    });
+
+    // Load portfolio data on init
+    this.portfolioService.loadPortfolio(this.authService.authHeaders());
+
     // Auto-load users when switching to all-users tab
     effect(() => {
       if (this.currentTab() === 'all-users') {
@@ -1006,7 +1073,25 @@ export class AdminDashboardComponent {
     this.setStatus('Refreshing portfolio data...');
     // loadPortfolio() is async - it updates signals via subscription
     // The effect() on signals will auto-hydrate forms when data arrives
-    this.portfolioService.loadPortfolio();
+    this.portfolioService.loadPortfolio(this.authService.authHeaders(), true);
+  }
+
+  toggleThemeMode() {
+    this.isDarkMode.update((value) => !value);
+  }
+
+  private initializeThemeMode() {
+    if (typeof localStorage === 'undefined') {
+      return false;
+    }
+
+    const saved = localStorage.getItem('theme');
+    if (!saved) {
+      localStorage.setItem('theme', 'light');
+      return false;
+    }
+
+    return saved === 'dark';
   }
 
   async saveAbout() {
@@ -1039,7 +1124,7 @@ export class AdminDashboardComponent {
 
   resetSkillForm() {
     this.editingSkillId.set(null);
-    this.skillForm = { name: '', category: 'frontend', level: 80 };
+    this.skillForm = { name: '', category: '', level: 80 };
     this.clearValidationGroup('skill.');
   }
 
@@ -1346,11 +1431,27 @@ export class AdminDashboardComponent {
   private setStatus(message: string) {
     this.status.set(message);
     this.error.set(null);
+    this.showToast('success', message);
+  }
+
+  private setError(message: string) {
+    this.error.set(message);
+    this.showToast('error', message);
+  }
+
+  private showToast(type: Toast['type'], message: string) {
+    this.toastService.show(type, message);
+
+    if (this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+    }
+
+    this.toastTimeout = setTimeout(() => this.toast.set(null), 4500);
   }
 
   private setValidationErrors(errors: ValidationErrors) {
     this.validationErrors.set(errors);
-    this.error.set('Please fix the highlighted fields.');
+    this.setError('Please fix the highlighted fields.');
     return true;
   }
 
@@ -1555,11 +1656,10 @@ export class AdminDashboardComponent {
       this.validationErrors.set({});
       this.hydrateForms();
       if (successMessage) {
-        this.status.set(successMessage);
-        this.error.set(null);
+        this.setStatus(successMessage);
       }
     } catch (error: any) {
-      this.error.set(error.message ?? 'Something went wrong.');
+      this.setError(this.getErrorMessage(error, 'Something went wrong.'));
     }
   }
 
@@ -1570,23 +1670,19 @@ export class AdminDashboardComponent {
       const users = await this.portfolioService.fetchAllUsers(this.authService.authHeaders());
       this.allUsers.set(users);
     } catch (error: any) {
-      this.error.set('Failed to load users: ' + (error.message ?? 'Unknown error'));
+      this.setError(this.getErrorMessage(error, 'Failed to load users'));
     } finally {
       this.isLoadingUsers.set(false);
     }
   }
 
-  async viewUserPortfolio(userId: number | string) {
-    try {
-      const portfolio = await this.portfolioService.fetchUserPortfolio(userId, this.authService.authHeaders());
-      if (portfolio) {
-        this.setStatus(`Loaded portfolio for user ID: ${userId}`);
-      } else {
-        this.error.set('Portfolio not found for this user');
-      }
-    } catch (error: any) {
-      this.error.set('Failed to load user portfolio: ' + (error.message ?? 'Unknown error'));
+  viewUserPortfolio(userId: number | string | null | undefined) {
+    if (!userId) {
+      this.setError('User ID is missing.');
+      return;
     }
+
+    this.router.navigate(['/admin/portfolio', userId]);
   }
 
   exportData() {
@@ -1609,5 +1705,27 @@ export class AdminDashboardComponent {
     a.click();
     URL.revokeObjectURL(url);
     this.setStatus('Data exported successfully!');
+  }
+
+  private getErrorMessage(error: any, fallback = 'Something went wrong.'): string {
+    if (Array.isArray(error?.error?.errors) && error.error.errors.length) {
+      return error.error.errors.join(' ');
+    }
+
+    const responseMessage = error?.error?.message;
+
+    if (Array.isArray(responseMessage)) {
+      return responseMessage.join(' ');
+    }
+
+    if (typeof responseMessage === 'string' && responseMessage.trim()) {
+      return responseMessage;
+    }
+
+    if (typeof error?.message === 'string' && !error.message.startsWith('Http failure response')) {
+      return error.message;
+    }
+
+    return fallback;
   }
 }

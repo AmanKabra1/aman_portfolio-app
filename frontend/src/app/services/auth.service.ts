@@ -2,6 +2,7 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { API_BASE_URL } from '../config/api.config';
+import { ToastService } from './toast.service';
 
 export interface User {
   id: number;
@@ -44,6 +45,7 @@ export interface RegisterResponse {
 export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
+  private toastService = inject(ToastService);
 
   private tokenKey = 'portfolio_token';
   private userKey = 'portfolio_user';
@@ -83,15 +85,19 @@ export class AuthService {
       localStorage.setItem(this.tokenKey, response.data.token);
       localStorage.setItem(this.userKey, JSON.stringify(response.data.user));
 
+      this.dispatchLoginEvent();
       // Redirect based on role
       if (response.data.user.role === 'admin') {
-        this.router.navigate(['/admin/dashboard']);
+        await this.router.navigate(['/admin/dashboard']);
       } else {
-        this.router.navigate(['/dashboard']);
+        await this.router.navigate(['/dashboard']);
       }
+
+      this.toastService.success('Signed in successfully.');
     } catch (error: any) {
       const message = error?.error?.message ?? error?.message ?? 'Login failed';
       this.error.set(message);
+      this.toastService.error(message);
       throw new Error(message);
     } finally {
       this.isLoading.set(false);
@@ -122,6 +128,7 @@ export class AuthService {
     } catch (error: any) {
       const message = error?.error?.message ?? error?.message ?? 'Registration failed';
       this.error.set(message);
+      this.toastService.error(message);
       throw new Error(message);
     } finally {
       this.isLoading.set(false);
@@ -163,16 +170,24 @@ export class AuthService {
   logout() {
     this.token.set(null);
     this.user.set(null);
-    localStorage.removeItem(this.tokenKey);
-    localStorage.removeItem(this.userKey);
-    // Clear portfolio cache to prevent data leakage between sessions
+    this.clearAuthStorage();
+    this.clearAccessibleCookies();
     this.clearCache();
-    this.router.navigate(['/']);
+    this.toastService.info('Logged out.');
+    this.router.navigate(['/login'], { replaceUrl: true });
   }
 
-  private clearCache(): void {
+  clearCache(): void {
     // Dispatch event for services to clear their state
-    window.dispatchEvent(new CustomEvent('auth:logout'));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth:logout'));
+    }
+  }
+
+  private dispatchLoginEvent(): void {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth:login'));
+    }
   }
 
   authHeaders(): HttpHeaders {
@@ -191,5 +206,32 @@ export class AuthService {
     if (typeof localStorage === 'undefined') return null;
     const raw = localStorage.getItem(this.userKey);
     return raw ? JSON.parse(raw) : null;
+  }
+
+  private clearAuthStorage(): void {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(this.tokenKey);
+      localStorage.removeItem(this.userKey);
+    }
+
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem(this.tokenKey);
+      sessionStorage.removeItem(this.userKey);
+    }
+  }
+
+  private clearAccessibleCookies(): void {
+    if (typeof document === 'undefined') return;
+
+    const expires = 'expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    const sameSite = 'SameSite=Lax';
+
+    for (const cookie of document.cookie.split(';')) {
+      const name = cookie.split('=')[0]?.trim();
+      if (!name) continue;
+
+      document.cookie = `${name}=; ${expires}; path=/; ${sameSite}`;
+      document.cookie = `${name}=; ${expires}; path=/`;
+    }
   }
 }

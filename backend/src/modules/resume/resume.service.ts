@@ -295,6 +295,7 @@ export class ResumeService {
                 filename,
                 url: `/resumes/${filename}`,
                 downloadUrl: `/api/resume/download/${filename}`,
+                fileData: Buffer.from(pdfBytes).toString('base64'),
             },
         };
     }

@@ -8,9 +8,11 @@ import {
   UseGuards,
   Request,
   Patch,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { UpdatePortfolioDto, UpdateSlugDto } from './dto/update-portfolio.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../admin/guards/admin.guard';
 import { PortfoliosService } from './portfolios.service';
 
 @Controller('portfolios')
@@ -33,6 +35,15 @@ export class PortfoliosController {
   @Get('stats')
   getStats(@Request() req) {
     return this.portfoliosService.getStats(req.user.id);
+  }
+
+  /**
+   * Admin: preview any user's portfolio, including private portfolios
+   */
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @Get('user/:userId')
+  getUserPortfolio(@Param('userId', ParseIntPipe) userId: number) {
+    return this.portfoliosService.getPortfolioForAdmin(userId);
   }
 
   /**

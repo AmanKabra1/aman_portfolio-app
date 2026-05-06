@@ -1,11 +1,15 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { ToastComponent } from './components/toast.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet],
-  template: `<router-outlet></router-outlet>`,
+  imports: [RouterOutlet, ToastComponent],
+  template: `
+    <router-outlet></router-outlet>
+    <app-toast></app-toast>
+  `,
   styleUrl: './app.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -15,17 +19,13 @@ export class AppComponent {
   }
 
   private initializeTheme(): void {
-    // Apply saved theme or detect system preference
+    // Default to light mode unless the user explicitly chose dark mode.
     if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
       const saved = localStorage.getItem('theme');
-      let isDark = false;
+      const isDark = saved === 'dark';
 
-      if (saved) {
-        isDark = saved === 'dark';
-      } else {
-        // Check system preference
-        isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      if (!saved) {
+        localStorage.setItem('theme', 'light');
       }
 
       if (isDark) {

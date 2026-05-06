@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, inject, OnInit, signal } from '@ang
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { PortfolioService } from '../services/portfolio.service';
+import { AuthService } from '../services/auth.service';
 import { HeaderComponent } from './header.component';
 import { HeroComponent } from './hero.component';
 import { AboutComponent } from './about.component';
@@ -46,7 +47,7 @@ import { SocialLinksComponent } from './social-links.component';
         </div>
       </div>
     } @else {
-      <div [style]="themeStyles()">
+      <div class="portfolio-theme" [class.dark]="theme()?.colorMode === 'dark'" [style]="themeStyles()">
         <app-header></app-header>
         <app-hero></app-hero>
         <app-about></app-about>
@@ -65,6 +66,7 @@ import { SocialLinksComponent } from './social-links.component';
 export class PublicPortfolioComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private portfolioService = inject(PortfolioService);
+  private authService = inject(AuthService);
 
   isLoading = this.portfolioService.isLoading;
   error = this.portfolioService.error;
@@ -72,6 +74,12 @@ export class PublicPortfolioComponent implements OnInit {
   theme = this.portfolioService.theme;
 
   ngOnInit() {
+    const adminUserId = this.route.snapshot.paramMap.get('userId');
+    if (adminUserId) {
+      this.portfolioService.loadAdminUserPortfolio(adminUserId, this.authService.authHeaders());
+      return;
+    }
+
     const identifier = this.route.snapshot.paramMap.get('identifier');
     if (identifier) {
       this.portfolioService.loadPublicPortfolio(identifier);
@@ -83,11 +91,24 @@ export class PublicPortfolioComponent implements OnInit {
     if (!t) return '';
 
     return `
+      --theme-primary: ${t.primaryColor};
+      --theme-secondary: ${t.secondaryColor};
+      --theme-accent: ${t.accentColor};
+      --theme-background: ${t.backgroundColor};
+      --theme-text: ${t.textColor};
+      --theme-hero-background: url("${this.cssUrl(t.heroBackgroundImage || '/assets/image.png')}");
+      color-scheme: ${t.colorMode === 'dark' ? 'dark' : 'light'};
       --primary-color: ${t.primaryColor};
       --secondary-color: ${t.secondaryColor};
       --accent-color: ${t.accentColor};
       --background-color: ${t.backgroundColor};
       --text-color: ${t.textColor};
+      --theme-font-family: ${t.fontFamily || 'Inter'};
+      --theme-heading-font: ${t.headingFont || t.fontFamily || 'Inter'};
     `;
+  }
+
+  private cssUrl(value: string) {
+    return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   }
 }

@@ -4,9 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { PortfolioService } from '../services/portfolio.service';
 import { AuthService } from '../services/auth.service';
+import { ToastService } from '../services/toast.service';
 import { AboutData, ContactData, Education, Experience, Project, Skill, SocialLink, Theme } from '../models/portfolio.model';
 
 type ValidationErrors = Record<string, string>;
+type Toast = { type: 'success' | 'error'; message: string };
 
 @Component({
   selector: 'app-user-dashboard',
@@ -14,6 +16,16 @@ type ValidationErrors = Record<string, string>;
   imports: [CommonModule, FormsModule],
   template: `
     <div class="min-h-screen bg-gradient-to-br from-primary-50 to-orange-50 dark:from-dark-900 dark:to-slate-900">
+      @if (toast()) {
+        <div
+          class="toast-alert"
+          [class.toast-alert--success]="toast()?.type === 'success'"
+          [class.toast-alert--error]="toast()?.type === 'error'"
+        >
+          {{ toast()?.message }}
+        </div>
+      }
+
       <!-- Header -->
       <header class="sticky top-0 z-40 border-b border-white/50 dark:border-white/10 bg-white/80 dark:bg-slate-950/70 backdrop-blur-xl shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
@@ -36,6 +48,7 @@ type ValidationErrors = Record<string, string>;
               </a>
             }
 
+            <button class="btn-secondary" (click)="scrollToLiveUpdates()">Live Updates</button>
             <button class="btn-secondary" (click)="refresh()">↻ Refresh</button>
             <button class="btn-primary" (click)="authService.logout()">Logout</button>
           </div>
@@ -73,18 +86,6 @@ type ValidationErrors = Record<string, string>;
       </header>
 
       <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
-        @if (status()) {
-          <div class="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 px-4 py-3 text-sm text-green-700 dark:text-green-300">
-            {{ status() }}
-          </div>
-        }
-
-        @if (error()) {
-          <div class="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-300">
-            {{ error() }}
-          </div>
-        }
-
         <!-- Stats -->
         <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div class="stat-card">
@@ -102,6 +103,42 @@ type ValidationErrors = Record<string, string>;
           <div class="stat-card">
             <p class="stat-label">Education</p>
             <p class="stat-value">{{ education().length }}</p>
+          </div>
+        </section>
+
+        <!-- Live Updates -->
+        <section id="live-updates" class="admin-panel p-6 md:p-7">
+          <div class="admin-header mb-6">
+            <div>
+              <p class="admin-eyebrow">Preview</p>
+              <h2 class="admin-title">Live Updates</h2>
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <button class="btn-secondary" (click)="refresh()">Refresh Data</button>
+              @if (portfolioUrl()) {
+                <a [href]="portfolioUrl()" target="_blank" class="btn-primary">View Live Portfolio</a>
+              }
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-3 gap-4">
+            <div class="live-update-card">
+              <p class="stat-label">Visibility</p>
+              <p class="live-update-value">{{ portfolio()?.isPublic ? 'Public' : 'Private' }}</p>
+              <p class="live-update-note">Only public portfolios open from shared links.</p>
+            </div>
+            <div class="live-update-card">
+              <p class="stat-label">Portfolio Link</p>
+              <p class="live-update-value">{{ portfolio()?.slug || 'Not ready' }}</p>
+              <button class="btn-secondary !px-3 !py-2 text-sm mt-3" (click)="copyPortfolioUrl()" [disabled]="!portfolio()?.slug">
+                Copy URL
+              </button>
+            </div>
+            <div class="live-update-card">
+              <p class="stat-label">Last Update</p>
+              <p class="live-update-value">{{ liveUpdatedAt() | date:'mediumTime' }}</p>
+              <p class="live-update-note">Saving any section updates your live portfolio data.</p>
+            </div>
           </div>
         </section>
 
@@ -163,10 +200,43 @@ type ValidationErrors = Record<string, string>;
                   <option value="creative">Creative</option>
                 </select>
               </div>
+              <div>
+                <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Portfolio Mode</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    class="btn-secondary !px-3 !py-3"
+                    [class.bg-gray-900]="themeForm.colorMode === 'dark'"
+                    [class.text-white]="themeForm.colorMode === 'dark'"
+                    (click)="setPortfolioMode('dark')"
+                  >
+                    🌙 Dark
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-secondary !px-3 !py-3"
+                    [class.bg-white]="themeForm.colorMode !== 'dark'"
+                    [class.text-gray-900]="themeForm.colorMode !== 'dark'"
+                    (click)="setPortfolioMode('light')"
+                  >
+                    ☀ Light
+                  </button>
+                </div>
+              </div>
+              <div class="md:col-span-3">
+                <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Hero Background Image URL</label>
+                <input
+                  [(ngModel)]="themeForm.heroBackgroundImage"
+                  type="text"
+                  class="w-full input-base"
+                  placeholder="/assets/image.png or https://example.com/image.jpg"
+                />
+              </div>
             </div>
 
             <div class="mt-6 flex flex-wrap gap-3">
               <button class="btn-primary" (click)="saveTheme()">Save Theme</button>
+              <button class="btn-secondary" (click)="applyPreset('default')">Default B/W</button>
               <button class="btn-secondary" (click)="applyPreset('blue')">Blue Preset</button>
               <button class="btn-secondary" (click)="applyPreset('green')">Green Preset</button>
               <button class="btn-secondary" (click)="applyPreset('purple')">Purple Preset</button>
@@ -186,11 +256,11 @@ type ValidationErrors = Record<string, string>;
           <div class="space-y-4">
             <div>
               <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Bio</label>
-              <textarea [(ngModel)]="aboutForm.bio" rows="3" class="w-full input-base" placeholder="A short bio about yourself..."></textarea>
+              <textarea [(ngModel)]="aboutForm.bio" rows="3" class="w-full input-base" placeholder="Frontend developer with 4+ years building Angular apps for SaaS teams."></textarea>
             </div>
             <div>
               <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Description</label>
-              <textarea [(ngModel)]="aboutForm.description" rows="4" class="w-full input-base" placeholder="Tell your story..."></textarea>
+              <textarea [(ngModel)]="aboutForm.description" rows="4" class="w-full input-base" placeholder="I build fast, accessible web products, lead UI architecture, and enjoy turning complex workflows into clean interfaces."></textarea>
             </div>
             <button class="btn-primary" (click)="saveAbout()">Save About</button>
             @if (aboutError()) {
@@ -210,27 +280,27 @@ type ValidationErrors = Record<string, string>;
           <div class="grid md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Email</label>
-              <input [(ngModel)]="contactForm.email" type="email" class="w-full input-base" />
+              <input [(ngModel)]="contactForm.email" type="email" class="w-full input-base" placeholder="aman.sharma@example.com" />
             </div>
             <div>
               <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Phone</label>
-              <input [(ngModel)]="contactForm.phone" type="text" class="w-full input-base" />
+              <input [(ngModel)]="contactForm.phone" type="text" class="w-full input-base" placeholder="+91 98765 43210" />
             </div>
             <div>
               <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Location</label>
-              <input [(ngModel)]="contactForm.location" type="text" class="w-full input-base" />
+              <input [(ngModel)]="contactForm.location" type="text" class="w-full input-base" placeholder="Bengaluru, India" />
             </div>
             <div>
               <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Website</label>
-              <input [(ngModel)]="contactForm.portfolio" type="text" class="w-full input-base" />
+              <input [(ngModel)]="contactForm.portfolio" type="text" class="w-full input-base" placeholder="https://aman.dev" />
             </div>
             <div>
               <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">GitHub</label>
-              <input [(ngModel)]="contactForm.github" type="text" class="w-full input-base" />
+              <input [(ngModel)]="contactForm.github" type="text" class="w-full input-base" placeholder="https://github.com/johndoe" />
             </div>
             <div>
               <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">LinkedIn</label>
-              <input [(ngModel)]="contactForm.linkedin" type="text" class="w-full input-base" />
+              <input [(ngModel)]="contactForm.linkedin" type="text" class="w-full input-base" placeholder="https://linkedin.com/in/johndoe" />
             </div>
           </div>
           <button class="btn-primary mt-4" (click)="saveContact()">Save Contact</button>
@@ -277,15 +347,10 @@ type ValidationErrors = Record<string, string>;
 
           <div class="grid md:grid-cols-3 gap-4">
             <div>
-              <input [(ngModel)]="skillForm.name" type="text" class="w-full input-base" placeholder="Skill name" />
+              <input [(ngModel)]="skillForm.name" type="text" class="w-full input-base" placeholder="Angular" />
             </div>
             <div>
-              <select [(ngModel)]="skillForm.category" class="w-full input-base">
-                <option value="frontend">Frontend</option>
-                <option value="backend">Backend</option>
-                <option value="database">Database</option>
-                <option value="tools">Tools</option>
-              </select>
+              <input [(ngModel)]="skillForm.category" type="text" class="w-full input-base" placeholder="frontend, backend, DevOps, Data Science" />
             </div>
             <div>
               <input [(ngModel)]="skillForm.level" type="number" class="w-full input-base" placeholder="Level 0-100" />
@@ -330,19 +395,19 @@ type ValidationErrors = Record<string, string>;
 
           <div class="grid md:grid-cols-2 gap-4">
             <div>
-              <input [(ngModel)]="projectForm.title" type="text" class="w-full input-base" placeholder="Project title" />
+              <input [(ngModel)]="projectForm.title" type="text" class="w-full input-base" placeholder="Portfolio Builder Platform" />
             </div>
             <div>
-              <input [(ngModel)]="projectForm.liveLink" type="text" class="w-full input-base" placeholder="Live URL" />
+              <input [(ngModel)]="projectForm.liveLink" type="text" class="w-full input-base" placeholder="https://app.example.com" />
             </div>
             <div class="md:col-span-2">
-              <textarea [(ngModel)]="projectForm.description" rows="2" class="w-full input-base" placeholder="Description"></textarea>
+              <textarea [(ngModel)]="projectForm.description" rows="2" class="w-full input-base" placeholder="Built a multi-user portfolio platform with auth, theme customization, resume export, and public profile pages."></textarea>
             </div>
             <div>
-              <input [(ngModel)]="projectForm.githubLink" type="text" class="w-full input-base" placeholder="GitHub URL" />
+              <input [(ngModel)]="projectForm.githubLink" type="text" class="w-full input-base" placeholder="https://github.com/johndoe/portfolio-app" />
             </div>
             <div>
-              <input [(ngModel)]="projectForm.technologies" type="text" class="w-full input-base" placeholder="Technologies (comma separated)" />
+              <input [(ngModel)]="projectForm.technologies" type="text" class="w-full input-base" placeholder="Angular, NestJS, Prisma, MySQL" />
             </div>
           </div>
           <label class="flex items-center gap-2 mt-4 text-sm text-dark-900 dark:text-white">
@@ -387,10 +452,10 @@ type ValidationErrors = Record<string, string>;
 
           <div class="grid md:grid-cols-2 gap-4">
             <div>
-              <input [(ngModel)]="experienceForm.company" type="text" class="w-full input-base" placeholder="Company" />
+              <input [(ngModel)]="experienceForm.company" type="text" class="w-full input-base" placeholder="Acme Technologies" />
             </div>
             <div>
-              <input [(ngModel)]="experienceForm.position" type="text" class="w-full input-base" placeholder="Position" />
+              <input [(ngModel)]="experienceForm.position" type="text" class="w-full input-base" placeholder="Frontend Developer" />
             </div>
             <div>
               <input [(ngModel)]="experienceForm.duration" type="text" class="w-full input-base" placeholder="Duration (e.g. Jan 2020 - Present)" />
@@ -399,7 +464,7 @@ type ValidationErrors = Record<string, string>;
               <input [(ngModel)]="experienceForm.startDate" type="date" class="w-full input-base" />
             </div>
             <div class="md:col-span-2">
-              <textarea [(ngModel)]="experienceForm.description" rows="2" class="w-full input-base" placeholder="Description"></textarea>
+              <textarea [(ngModel)]="experienceForm.description" rows="2" class="w-full input-base" placeholder="Built reusable Angular components, improved page performance, and collaborated with backend and design teams."></textarea>
             </div>
           </div>
           <button class="btn-primary mt-4" (click)="saveExperience()">
@@ -442,16 +507,16 @@ type ValidationErrors = Record<string, string>;
 
           <div class="grid md:grid-cols-2 gap-4">
             <div>
-              <input [(ngModel)]="educationForm.institution" type="text" class="w-full input-base" placeholder="Institution" />
+              <input [(ngModel)]="educationForm.institution" type="text" class="w-full input-base" placeholder="Delhi Technological University" />
             </div>
             <div>
-              <input [(ngModel)]="educationForm.degree" type="text" class="w-full input-base" placeholder="Degree" />
+              <input [(ngModel)]="educationForm.degree" type="text" class="w-full input-base" placeholder="B.Tech in Computer Science" />
             </div>
             <div>
-              <input [(ngModel)]="educationForm.field" type="text" class="w-full input-base" placeholder="Field of study" />
+              <input [(ngModel)]="educationForm.field" type="text" class="w-full input-base" placeholder="Software Engineering" />
             </div>
             <div>
-              <input [(ngModel)]="educationForm.grade" type="text" class="w-full input-base" placeholder="Grade/GPA" />
+              <input [(ngModel)]="educationForm.grade" type="text" class="w-full input-base" placeholder="8.6 CGPA" />
             </div>
             <div>
               <input [(ngModel)]="educationForm.startDate" type="date" class="w-full input-base" />
@@ -460,7 +525,7 @@ type ValidationErrors = Record<string, string>;
               <input [(ngModel)]="educationForm.endDate" type="date" class="w-full input-base" />
             </div>
             <div class="md:col-span-2">
-              <textarea [(ngModel)]="educationForm.description" rows="2" class="w-full input-base" placeholder="Description"></textarea>
+              <textarea [(ngModel)]="educationForm.description" rows="2" class="w-full input-base" placeholder="Focused on data structures, databases, and full-stack application development."></textarea>
             </div>
           </div>
           <label class="flex items-center gap-2 mt-4 text-sm text-dark-900 dark:text-white">
@@ -484,15 +549,15 @@ type ValidationErrors = Record<string, string>;
             </div>
           </div>
 
-          <div class="flex flex-wrap gap-4">
-            <div>
+          <div class="grid gap-4 md:grid-cols-[minmax(0,220px)_1fr] md:items-end">
+            <div class="max-w-xs">
               <label class="block text-sm font-medium mb-2 text-dark-900 dark:text-white">Template</label>
               <select [(ngModel)]="resumeTemplate" class="input-base">
                 <option value="modern">Modern</option>
                 <option value="classic">Classic</option>
               </select>
             </div>
-            <div class="flex items-end gap-3">
+            <div class="flex flex-wrap items-end gap-3">
               <button class="btn-primary" (click)="generateResume()" [disabled]="isGeneratingResume()">
                 @if (isGeneratingResume()) {
                   Generating...
@@ -501,7 +566,7 @@ type ValidationErrors = Record<string, string>;
                 }
               </button>
               @if (resumeUrl()) {
-                <a [href]="resumeUrl()" target="_blank" class="btn-success">Download Resume</a>
+                <a [href]="resumeUrl()" [attr.download]="resumeFilename()" target="_blank" rel="noopener noreferrer" class="btn-success">Download Resume</a>
               }
             </div>
           </div>
@@ -510,6 +575,56 @@ type ValidationErrors = Record<string, string>;
     </div>
   `,
   styles: [`
+    .toast-alert {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 100;
+      max-width: min(24rem, calc(100vw - 2rem));
+      border-radius: 0.75rem;
+      padding: 0.85rem 1rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+      animation: toast-in 160ms ease-out;
+    }
+
+    .toast-alert--success {
+      border: 1px solid rgb(187 247 208);
+      background: rgb(240 253 244);
+      color: rgb(21 128 61);
+    }
+
+    .toast-alert--error {
+      border: 1px solid rgb(254 202 202);
+      background: rgb(254 242 242);
+      color: rgb(185 28 28);
+    }
+
+    :host-context(.dark) .toast-alert--success {
+      border-color: rgb(22 101 52);
+      background: rgb(20 83 45);
+      color: rgb(220 252 231);
+    }
+
+    :host-context(.dark) .toast-alert--error {
+      border-color: rgb(153 27 27);
+      background: rgb(127 29 29);
+      color: rgb(254 226 226);
+    }
+
+    @keyframes toast-in {
+      from {
+        opacity: 0;
+        transform: translateY(-0.35rem);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
     .admin-panel {
       border: 1px solid rgba(255, 255, 255, 0.72);
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.74));
@@ -582,6 +697,39 @@ type ValidationErrors = Record<string, string>;
 
     :host-context(.dark) .stat-value {
       color: white;
+    }
+
+    .live-update-card {
+      border: 1px solid rgba(249, 115, 22, 0.18);
+      background: rgba(255, 247, 237, 0.62);
+      border-radius: 1rem;
+      padding: 1rem;
+    }
+
+    :host-context(.dark) .live-update-card {
+      border-color: rgba(249, 115, 22, 0.22);
+      background: rgba(30, 41, 59, 0.72);
+    }
+
+    .live-update-value {
+      margin: 0.5rem 0 0;
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: rgb(17 24 39);
+      word-break: break-word;
+    }
+
+    :host-context(.dark) .live-update-value {
+      color: white;
+    }
+
+    .live-update-note {
+      font-size: 0.85rem;
+      color: rgb(75 85 99);
+    }
+
+    :host-context(.dark) .live-update-note {
+      color: rgb(203 213 225);
     }
 
     .input-base {
@@ -704,15 +852,20 @@ type ValidationErrors = Record<string, string>;
 export class UserDashboardComponent {
   portfolioService = inject(PortfolioService);
   authService = inject(AuthService);
+  private toastService = inject(ToastService);
   private router = inject(Router);
 
   status = signal<string | null>(null);
   error = signal<string | null>(null);
+  toast = signal<Toast | null>(null);
+  private toastTimeout: ReturnType<typeof setTimeout> | null = null;
   inlineError = signal<string | null>(null);
   showThemeEditor = signal(false);
   isGeneratingResume = signal(false);
   resumeTemplate = 'modern';
   resumeUrl = signal<string | null>(null);
+  resumeFilename = signal('resume.pdf');
+  liveUpdatedAt = signal<Date>(new Date());
 
   portfolio = this.portfolioService.getPortfolio;
   portfolioUrl = this.portfolioService.portfolioUrl;
@@ -738,16 +891,18 @@ export class UserDashboardComponent {
   };
 
   themeForm: Partial<Theme> = {
-    primaryColor: '#3B82F6',
-    secondaryColor: '#10B981',
-    accentColor: '#F59E0B',
+    primaryColor: '#111111',
+    secondaryColor: '#6B7280',
+    accentColor: '#000000',
     backgroundColor: '#FFFFFF',
-    textColor: '#1F2937',
+    textColor: '#111111',
+    heroBackgroundImage: '/assets/image.png',
+    colorMode: 'light',
     template: 'modern',
   };
 
   editingSkillId = signal<string | number | null>(null);
-  skillForm = { name: '', category: 'frontend' as Skill['category'], level: 80 };
+  skillForm = { name: '', category: '', level: 80 };
 
   editingProjectId = signal<string | number | null>(null);
   projectForm = { title: '', description: '', image: '', liveLink: '', githubLink: '', technologies: '', featured: false };
@@ -808,7 +963,11 @@ export class UserDashboardComponent {
 
   refresh() {
     this.setStatus('Refreshing portfolio data...');
-    this.portfolioService.loadPortfolio(this.authService.authHeaders());
+    this.portfolioService.loadPortfolio(this.authService.authHeaders(), true);
+  }
+
+  scrollToLiveUpdates() {
+    document.getElementById('live-updates')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   copyPortfolioUrl() {
@@ -833,6 +992,10 @@ export class UserDashboardComponent {
     await this.runAction(async () => {
       await this.portfolioService.updateTheme(this.themeForm, this.authService.authHeaders());
     }, 'Theme saved!');
+  }
+
+  setPortfolioMode(mode: 'light' | 'dark') {
+    this.themeForm = { ...this.themeForm, colorMode: mode };
   }
 
   async applyPreset(preset: string) {
@@ -860,7 +1023,7 @@ export class UserDashboardComponent {
 
   resetSkillForm() {
     this.editingSkillId.set(null);
-    this.skillForm = { name: '', category: 'frontend', level: 80 };
+    this.skillForm = { name: '', category: '', level: 80 };
   }
 
   async saveSkill() {
@@ -938,6 +1101,10 @@ export class UserDashboardComponent {
   }
 
   async saveExperience() {
+    if (this.validateExperience()) {
+      return;
+    }
+
     await this.runSectionAction(this.experienceError, async () => {
       if (this.editingExperienceId()) {
         await this.portfolioService.updateExperience(this.editingExperienceId()!, this.experienceForm, this.authService.authHeaders());
@@ -974,6 +1141,10 @@ export class UserDashboardComponent {
   }
 
   async saveEducation() {
+    if (this.validateEducation()) {
+      return;
+    }
+
     await this.runSectionAction(this.educationError, async () => {
       if (this.editingEducationId()) {
         await this.portfolioService.updateEducation(this.editingEducationId()!, this.educationForm, this.authService.authHeaders());
@@ -994,11 +1165,16 @@ export class UserDashboardComponent {
   async generateResume() {
     this.isGeneratingResume.set(true);
     try {
-      const url = await this.portfolioService.generateResume(this.resumeTemplate, this.authService.authHeaders());
-      this.resumeUrl.set(url);
+      const resume = await this.portfolioService.generateResume(this.resumeTemplate, this.authService.authHeaders());
+      const previousUrl = this.resumeUrl();
+      if (previousUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(previousUrl);
+      }
+      this.resumeUrl.set(resume.url);
+      this.resumeFilename.set(resume.filename);
       this.setStatus('Resume generated! Click Download to save.');
     } catch (error: any) {
-      this.error.set(error.message ?? 'Failed to generate resume');
+      this.setError(this.getErrorMessage(error, 'Failed to generate resume'));
     } finally {
       this.isGeneratingResume.set(false);
     }
@@ -1007,7 +1183,24 @@ export class UserDashboardComponent {
   private setStatus(message: string) {
     this.status.set(message);
     this.error.set(null);
+    this.liveUpdatedAt.set(new Date());
+    this.showToast('success', message);
     setTimeout(() => this.status.set(null), 5000);
+  }
+
+  private setError(message: string) {
+    this.error.set(message);
+    this.showToast('error', message);
+  }
+
+  private showToast(type: Toast['type'], message: string) {
+    this.toastService.show(type, message);
+
+    if (this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+    }
+
+    this.toastTimeout = setTimeout(() => this.toast.set(null), 4500);
   }
 
   private async runAction(action: () => Promise<void>, successMessage?: string): Promise<boolean> {
@@ -1019,7 +1212,7 @@ export class UserDashboardComponent {
       }
       return true;
     } catch (error: any) {
-      this.error.set(error.message ?? 'Something went wrong');
+      this.setError(this.getErrorMessage(error));
       return false;
     }
   }
@@ -1038,8 +1231,74 @@ export class UserDashboardComponent {
       }
       return true;
     } catch (error: any) {
-      sectionError.set(error.message ?? 'Something went wrong');
+      const message = this.getErrorMessage(error);
+      sectionError.set(message);
+      this.showToast('error', message);
       return false;
     }
+  }
+
+  private validateExperience(): boolean {
+    const firstError =
+      !this.experienceForm.company.trim()
+        ? 'Company is required.'
+        : !this.experienceForm.position.trim()
+          ? 'Position is required.'
+          : !this.experienceForm.startDate
+            ? 'Start date is required.'
+            : this.experienceForm.endDate && this.experienceForm.endDate < this.experienceForm.startDate
+              ? 'End date cannot be before start date.'
+              : null;
+
+    this.experienceError.set(firstError);
+
+    if (firstError) {
+      this.showToast('error', firstError);
+    }
+
+    return Boolean(firstError);
+  }
+
+  private validateEducation(): boolean {
+    const firstError =
+      !this.educationForm.institution.trim()
+        ? 'Institution is required.'
+        : !this.educationForm.degree.trim()
+          ? 'Degree is required.'
+          : !this.educationForm.startDate
+            ? 'Start date is required.'
+            : this.educationForm.endDate && this.educationForm.endDate < this.educationForm.startDate
+              ? 'End date cannot be before start date.'
+              : null;
+
+    this.educationError.set(firstError);
+
+    if (firstError) {
+      this.showToast('error', firstError);
+    }
+
+    return Boolean(firstError);
+  }
+
+  private getErrorMessage(error: any, fallback = 'Something went wrong'): string {
+    if (Array.isArray(error?.error?.errors) && error.error.errors.length) {
+      return error.error.errors.join(' ');
+    }
+
+    const responseMessage = error?.error?.message;
+
+    if (Array.isArray(responseMessage)) {
+      return responseMessage.join(' ');
+    }
+
+    if (typeof responseMessage === 'string' && responseMessage.trim()) {
+      return responseMessage;
+    }
+
+    if (typeof error?.message === 'string' && !error.message.startsWith('Http failure response')) {
+      return error.message;
+    }
+
+    return fallback;
   }
 }

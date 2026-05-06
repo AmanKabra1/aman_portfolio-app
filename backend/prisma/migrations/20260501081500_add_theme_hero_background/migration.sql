@@ -1,0 +1,6 @@
+ALTER TABLE `portfolio_themes`
+  ADD COLUMN `heroBackgroundImage` VARCHAR(191) NOT NULL DEFAULT '/assets/image.png',
+  MODIFY `primaryColor` VARCHAR(191) NOT NULL DEFAULT '#111111',
+  MODIFY `secondaryColor` VARCHAR(191) NOT NULL DEFAULT '#6B7280',
+  MODIFY `textColor` VARCHAR(191) NOT NULL DEFAULT '#111111',
+  MODIFY `accentColor` VARCHAR(191) NOT NULL DEFAULT '#000000';

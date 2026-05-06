@@ -10,9 +10,13 @@ export const adminGuard: CanActivateFn = () => {
     return true;
   }
 
+  // Not authenticated or not admin - redirect based on auth state
   if (!authService.isAuthenticated()) {
-    router.navigate(['/admin/login']);
+    router.navigate(['/admin/login'], {
+      queryParams: { returnUrl: router.url },
+    });
   } else {
+    // Authenticated but not admin - go to regular user dashboard
     router.navigate(['/dashboard']);
   }
   return false;

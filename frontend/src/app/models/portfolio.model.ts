@@ -1,7 +1,7 @@
 export interface Skill {
   id: string | number;
   name: string;
-  category: 'frontend' | 'backend' | 'database' | 'tools';
+  category: string;
   level: number;
 }
 
@@ -75,6 +75,13 @@ export interface ContactData {
 export interface Portfolio {
   id: string | number;
   userId?: number;
+  user?: {
+    username?: string;
+    firstName?: string;
+    lastName?: string;
+    photoUrl?: string;
+    email?: string;
+  };
   title: string;
   subtitle?: string;
   slug: string;
@@ -98,6 +105,8 @@ export interface Theme {
   accentColor: string;
   fontFamily: string;
   headingFont: string;
+  heroBackgroundImage?: string;
+  colorMode?: 'light' | 'dark';
   fontSize: 'small' | 'medium' | 'large';
   template: 'modern' | 'classic' | 'minimal' | 'creative';
   layout: 'single' | 'multi';

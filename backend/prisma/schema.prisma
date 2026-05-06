@@ -106,11 +106,13 @@ model PortfolioTheme {
   portfolioId     Int       @unique
   
   // Colors
-  primaryColor    String    @default("#3B82F6")
-  secondaryColor  String    @default("#10B981")
+  primaryColor    String    @default("#111111")
+  secondaryColor  String    @default("#6B7280")
   backgroundColor String    @default("#FFFFFF")
-  textColor       String    @default("#1F2937")
-  accentColor     String    @default("#F59E0B")
+  textColor       String    @default("#111111")
+  accentColor     String    @default("#000000")
+  heroBackgroundImage String @default("/assets/image.png")
+  colorMode       String    @default("light")
   
   // Typography
   fontFamily      String    @default("Inter")

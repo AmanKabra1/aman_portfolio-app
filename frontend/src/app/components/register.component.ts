@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { API_BASE_URL } from '../config/api.config';
 
 @Component({
   selector: 'app-register',
@@ -58,6 +59,7 @@ import { AuthService } from '../services/auth.service';
                 placeholder="johndoe"
                 (blur)="checkUsername()"
               />
+              <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Use letters, numbers, and underscores only.</p>
               @if (usernameError()) {
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ usernameError() }}</p>
               }
@@ -77,6 +79,7 @@ import { AuthService } from '../services/auth.service';
                 [class.input-error]="emailError()"
                 placeholder="john@example.com"
               />
+              <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">This becomes your account login email.</p>
               @if (emailError()) {
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ emailError() }}</p>
               }
@@ -91,8 +94,9 @@ import { AuthService } from '../services/auth.service';
                 required
                 class="w-full input-base"
                 [class.input-error]="passwordError()"
-                placeholder="••••••••"
+                placeholder="Create a strong password"
               />
+              <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">At least 6 characters.</p>
               @if (passwordError()) {
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ passwordError() }}</p>
               }
@@ -107,7 +111,7 @@ import { AuthService } from '../services/auth.service';
                 required
                 class="w-full input-base"
                 [class.input-error]="confirmPasswordError()"
-                placeholder="••••••••"
+                placeholder="Repeat the same password"
               />
               @if (confirmPasswordError()) {
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ confirmPasswordError() }}</p>
@@ -238,7 +242,7 @@ export class RegisterComponent {
 
     // Check availability via API
     try {
-      const response = await fetch(`${'https://aman-portfolio-app.onrender.com/api'}/users/username/${username}/available`);
+      const response = await fetch(`${API_BASE_URL}/users/username/${username}/available`);
       const data = await response.json();
       if (data.success) {
         this.usernameAvailable.set(data.data.available);

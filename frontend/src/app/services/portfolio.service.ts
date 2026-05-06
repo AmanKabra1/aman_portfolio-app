@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Education, Skill, Project, Experience, AboutData, ContactData, SocialLink, Portfolio, Theme } from '../models/portfolio.model';
-import { API_BASE_URL, HEALTH_URL } from '../config/api.config';
+import { API_BASE_URL, API_ORIGIN, HEALTH_URL } from '../config/api.config';
 
 @Injectable({ providedIn: 'root' })
 export class PortfolioService {
@@ -28,6 +28,9 @@ export class PortfolioService {
   // Loading states
   isLoading = signal(false);
   error = signal<string | null>(null);
+  private portfolioLoadInFlight = false;
+  private lastPortfolioLoadAt = 0;
+  private readonly portfolioLoadCacheMs = 1500;
 
   constructor() {
     // Listen for logout events to clear cache
@@ -35,10 +38,18 @@ export class PortfolioService {
       window.addEventListener('auth:logout', () => {
         this.clearCache();
       });
+      window.addEventListener('auth:login', () => {
+        // Reload portfolio data on login
+        setTimeout(() => {
+          this.loadPortfolio(this.storedAuthHeaders());
+        }, 100);
+      });
     }
   }
 
   clearCache(): void {
+    this.portfolioLoadInFlight = false;
+    this.lastPortfolioLoadAt = 0;
     this.portfolioData.set(null);
     this.themeData.set(null);
     this.about.set({ bio: '', description: '', yearsExperience: 0 });
@@ -64,7 +75,7 @@ export class PortfolioService {
   getPortfolio = this.portfolioData.asReadonly();
   theme = this.themeData.asReadonly();
 
-  getSkillsByCategory(category: Skill['category']): Skill[] {
+  getSkillsByCategory(category: string): Skill[] {
     return this.skillsData().filter((skill) => skill.category === category);
   }
 
@@ -78,22 +89,37 @@ export class PortfolioService {
   }
 
   // Load authenticated user's portfolio
-  loadPortfolio(headers?: HttpHeaders) {
+  loadPortfolio(headers?: HttpHeaders, force = false) {
+    const now = Date.now();
+
+    if (!force && this.portfolioLoadInFlight) {
+      return;
+    }
+
+    if (!force && this.portfolioData() && now - this.lastPortfolioLoadAt < this.portfolioLoadCacheMs) {
+      return;
+    }
+
+    this.portfolioLoadInFlight = true;
     this.isLoading.set(true);
     this.error.set(null);
 
-    const httpOptions = headers ? { headers } : {};
+    const authHeaders = headers ?? this.storedAuthHeaders();
+    const httpOptions = authHeaders ? { headers: authHeaders } : {};
 
     this.http
       .get<{ success: boolean; message: string; data: any }>(`${API_BASE_URL}/portfolios/mine`, httpOptions)
       .subscribe({
         next: (response) => {
           this.mapPortfolioData(response.data);
+          this.lastPortfolioLoadAt = Date.now();
+          this.portfolioLoadInFlight = false;
           this.isLoading.set(false);
         },
         error: (error) => {
           console.error('Failed to load portfolio:', error);
           this.error.set('Failed to load portfolio');
+          this.portfolioLoadInFlight = false;
           this.isLoading.set(false);
         },
       });
@@ -113,10 +139,53 @@ export class PortfolioService {
         },
         error: (error) => {
           console.error('Failed to load public portfolio:', error);
+          if (this.shouldLoadAuthenticatedPortfolioFallback(identifier, error)) {
+            this.loadPortfolio(this.storedAuthHeaders());
+            return;
+          }
+
+          this.clearCache();
           this.error.set('Portfolio not found');
           this.isLoading.set(false);
         },
       });
+  }
+
+  private storedAuthHeaders(): HttpHeaders | undefined {
+    if (typeof localStorage === 'undefined') return undefined;
+
+    const token = localStorage.getItem('portfolio_token');
+    return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+  }
+
+  private isStoredUserPortfolioIdentifier(identifier: string): boolean {
+    if (typeof localStorage === 'undefined') return false;
+
+    const normalized = identifier.trim().toLowerCase();
+    const rawUser = localStorage.getItem('portfolio_user');
+
+    if (!normalized || !rawUser) return false;
+
+    try {
+      const user = JSON.parse(rawUser);
+      const username = String(user?.username ?? '').toLowerCase();
+      const slug = String(user?.portfolio?.slug ?? '').toLowerCase();
+      const loadedSlug = String(this.portfolioData()?.slug ?? '').toLowerCase();
+
+      return normalized === username || normalized === slug || normalized === loadedSlug;
+    } catch {
+      return false;
+    }
+  }
+
+  private shouldLoadAuthenticatedPortfolioFallback(identifier: string, error: any): boolean {
+    const hasToken = Boolean(this.storedAuthHeaders());
+    const message = String(error?.error?.message ?? error?.message ?? '').toLowerCase();
+
+    return (
+      this.isStoredUserPortfolioIdentifier(identifier) ||
+      (hasToken && message.includes('numeric string'))
+    );
   }
 
   private mapPortfolioData(data: any) {
@@ -130,10 +199,13 @@ export class PortfolioService {
       }
     }
 
+    const ownerEmail = data.email ?? data.user?.email ?? '';
+
     // Map portfolio info
     this.portfolioData.set({
       id: data.id,
       userId: data.userId,
+      user: data.user,
       title: data.title ?? '',
       subtitle: data.subtitle ?? '',
       slug: data.slug ?? '',
@@ -141,7 +213,7 @@ export class PortfolioService {
       bio: data.bio ?? '',
       description: data.description ?? '',
       profilePhotoUrl: data.profilePhotoUrl ?? '',
-      email: data.email ?? '',
+      email: ownerEmail,
       phone: data.phone ?? '',
       location: data.location ?? '',
       website: data.website ?? '',
@@ -152,13 +224,15 @@ export class PortfolioService {
       this.themeData.set({
         id: data.theme.id,
         portfolioId: data.theme.portfolioId,
-        primaryColor: data.theme.primaryColor ?? '#3B82F6',
-        secondaryColor: data.theme.secondaryColor ?? '#10B981',
+        primaryColor: data.theme.primaryColor ?? '#111111',
+        secondaryColor: data.theme.secondaryColor ?? '#6B7280',
         backgroundColor: data.theme.backgroundColor ?? '#FFFFFF',
-        textColor: data.theme.textColor ?? '#1F2937',
-        accentColor: data.theme.accentColor ?? '#F59E0B',
+        textColor: data.theme.textColor ?? '#111111',
+        accentColor: data.theme.accentColor ?? '#000000',
         fontFamily: data.theme.fontFamily ?? 'Inter',
         headingFont: data.theme.headingFont ?? 'Inter',
+        heroBackgroundImage: data.theme.heroBackgroundImage ?? '/assets/image.png',
+        colorMode: data.theme.colorMode === 'dark' ? 'dark' : 'light',
         fontSize: data.theme.fontSize ?? 'medium',
         template: data.theme.template ?? 'modern',
         layout: data.theme.layout ?? 'single',
@@ -180,7 +254,7 @@ export class PortfolioService {
 
     // Map contact - use socialMap if available, otherwise fall back to direct fields
     this.contact.set({
-      email: data.email ?? '',
+      email: ownerEmail,
       phone: data.phone ?? '',
       location: data.location ?? '',
       github: socialMap['github'] ?? data.github ?? '',
@@ -281,8 +355,9 @@ export class PortfolioService {
   }
 
   async updateTheme(payload: Partial<Theme>, headers: HttpHeaders): Promise<void> {
+    const themePayload = this.themePayload(payload);
     const response = await this.http
-      .put<{ success: boolean; data: any }>(`${API_BASE_URL}/themes/mine`, payload, { headers })
+      .put<{ success: boolean; data: any }>(`${API_BASE_URL}/themes/mine`, themePayload, { headers })
       .toPromise();
 
     if (response?.data) {
@@ -310,18 +385,80 @@ export class PortfolioService {
     return this.http.get<{ success: boolean; data: string[] }>(`${API_BASE_URL}/themes/templates`);
   }
 
+  private themePayload(payload: Partial<Theme>) {
+    return {
+      primaryColor: this.normalizeHex(payload.primaryColor, '#111111'),
+      secondaryColor: this.normalizeHex(payload.secondaryColor, '#6B7280'),
+      backgroundColor: this.normalizeHex(payload.backgroundColor, '#FFFFFF'),
+      textColor: this.normalizeHex(payload.textColor, '#111111'),
+      accentColor: this.normalizeHex(payload.accentColor, '#000000'),
+      fontFamily: payload.fontFamily ?? 'Inter',
+      headingFont: payload.headingFont ?? 'Inter',
+      heroBackgroundImage: (payload.heroBackgroundImage ?? '').trim() || '/assets/image.png',
+      colorMode: payload.colorMode === 'dark' ? 'dark' : 'light',
+      fontSize: payload.fontSize ?? 'medium',
+      template: payload.template ?? 'modern',
+      layout: payload.layout ?? 'single',
+      showAbout: payload.showAbout ?? true,
+      showSkills: payload.showSkills ?? true,
+      showProjects: payload.showProjects ?? true,
+      showExperience: payload.showExperience ?? true,
+      showEducation: payload.showEducation ?? true,
+      showContact: payload.showContact ?? true,
+    };
+  }
+
+  private normalizeHex(value: string | undefined, fallback: string): string {
+    const raw = (value ?? '').trim();
+    const hex = raw.startsWith('#') ? raw : `#${raw}`;
+
+    return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(hex) ? hex : fallback;
+  }
+
   // Admin: Get all users
   async fetchAllUsers(headers: HttpHeaders): Promise<any[]> {
     const response = await this.http
-      .get<{ success: boolean; data: any[] }>(`${API_BASE_URL}/users/all`, { headers })
+      .get<{ success: boolean; data: { users: any[]; pagination: any } }>(`${API_BASE_URL}/admin/users`, { headers })
       .toPromise();
-    return response?.data ?? [];
+    return response?.data?.users ?? [];
   }
 
   // Admin: Get user portfolio by user ID
   async fetchUserPortfolio(userId: number | string, headers: HttpHeaders): Promise<any> {
     const response = await this.http
       .get<{ success: boolean; data: any }>(`${API_BASE_URL}/portfolios/user/${userId}`, { headers })
+      .toPromise();
+    return response?.data ?? null;
+  }
+
+  loadAdminUserPortfolio(userId: number | string, headers: HttpHeaders) {
+    this.clearCache();
+    this.isLoading.set(true);
+    this.error.set(null);
+
+    this.http
+      .get<{ success: boolean; message: string; data: any }>(
+        `${API_BASE_URL}/portfolios/user/${userId}`,
+        { headers }
+      )
+      .subscribe({
+        next: (response) => {
+          this.mapPortfolioData(response.data);
+          this.isLoading.set(false);
+        },
+        error: (error) => {
+          console.error('Failed to load user portfolio:', error);
+          this.clearCache();
+          this.error.set('Portfolio not found');
+          this.isLoading.set(false);
+        },
+      });
+  }
+
+  // Admin: Get user by ID (with portfolio)
+  async fetchUserById(userId: number | string, headers: HttpHeaders): Promise<any> {
+    const response = await this.http
+      .get<{ success: boolean; data: any }>(`${API_BASE_URL}/admin/users/${userId}`, { headers })
       .toPromise();
     return response?.data ?? null;
   }
@@ -361,6 +498,17 @@ export class PortfolioService {
         youtube: response.data.youtube ?? '',
         portfolio: response.data.portfolio ?? '',
       });
+      this.portfolioData.update((portfolio) =>
+        portfolio
+          ? {
+              ...portfolio,
+              email: response.data.email ?? portfolio.email,
+              phone: response.data.phone ?? portfolio.phone,
+              location: response.data.location ?? portfolio.location,
+              website: response.data.portfolio ?? portfolio.website,
+            }
+          : portfolio
+      );
     }
   }
 
@@ -376,8 +524,9 @@ export class PortfolioService {
   }
 
   async updateSkill(id: string | number, payload: { name: string; category: string; level: number }, headers: HttpHeaders) {
+    const routeId = this.requireNumericId(id, 'skill');
     const response = await this.http
-      .put<{ success: boolean; data: any }>(`${API_BASE_URL}/skills/${id}`, payload, { headers })
+      .put<{ success: boolean; data: any }>(`${API_BASE_URL}/skills/${routeId}`, payload, { headers })
       .toPromise();
 
     if (response?.data) {
@@ -388,7 +537,8 @@ export class PortfolioService {
   }
 
   async deleteSkill(id: string | number, headers: HttpHeaders) {
-    await this.http.delete(`${API_BASE_URL}/skills/${id}`, { headers }).toPromise();
+    const routeId = this.requireNumericId(id, 'skill');
+    await this.http.delete(`${API_BASE_URL}/skills/${routeId}`, { headers }).toPromise();
     this.skillsData.update((skills) => skills.filter((skill) => skill.id !== id));
   }
 
@@ -404,8 +554,9 @@ export class PortfolioService {
   }
 
   async updateProject(id: string | number, payload: any, headers: HttpHeaders) {
+    const routeId = this.requireNumericId(id, 'project');
     const response = await this.http
-      .put<{ success: boolean; data: any }>(`${API_BASE_URL}/projects/${id}`, payload, { headers })
+      .put<{ success: boolean; data: any }>(`${API_BASE_URL}/projects/${routeId}`, payload, { headers })
       .toPromise();
 
     if (response?.data) {
@@ -416,14 +567,19 @@ export class PortfolioService {
   }
 
   async deleteProject(id: string | number, headers: HttpHeaders) {
-    await this.http.delete(`${API_BASE_URL}/projects/${id}`, { headers }).toPromise();
+    const routeId = this.requireNumericId(id, 'project');
+    await this.http.delete(`${API_BASE_URL}/projects/${routeId}`, { headers }).toPromise();
     this.projectsData.update((projects) => projects.filter((project) => project.id !== id));
   }
 
   // Experience CRUD
   async createExperience(payload: any, headers: HttpHeaders) {
     const response = await this.http
-      .post<{ success: boolean; data: any }>(`${API_BASE_URL}/experience`, payload, { headers })
+      .post<{ success: boolean; data: any }>(
+        `${API_BASE_URL}/experience`,
+        this.withoutEmptyDateFields(payload),
+        { headers }
+      )
       .toPromise();
 
     if (response?.data) {
@@ -434,8 +590,13 @@ export class PortfolioService {
   }
 
   async updateExperience(id: string | number, payload: any, headers: HttpHeaders) {
+    const routeId = this.requireNumericId(id, 'experience');
     const response = await this.http
-      .put<{ success: boolean; data: any }>(`${API_BASE_URL}/experience/${id}`, payload, { headers })
+      .put<{ success: boolean; data: any }>(
+        `${API_BASE_URL}/experience/${routeId}`,
+        this.withoutEmptyDateFields(payload),
+        { headers }
+      )
       .toPromise();
 
     if (response?.data) {
@@ -448,14 +609,19 @@ export class PortfolioService {
   }
 
   async deleteExperience(id: string | number, headers: HttpHeaders) {
-    await this.http.delete(`${API_BASE_URL}/experience/${id}`, { headers }).toPromise();
+    const routeId = this.requireNumericId(id, 'experience');
+    await this.http.delete(`${API_BASE_URL}/experience/${routeId}`, { headers }).toPromise();
     this.experienceData.update((items) => items.filter((item) => item.id !== id));
   }
 
   // Education CRUD
   async createEducation(payload: any, headers: HttpHeaders) {
     const response = await this.http
-      .post<{ success: boolean; data: any }>(`${API_BASE_URL}/education`, payload, { headers })
+      .post<{ success: boolean; data: any }>(
+        `${API_BASE_URL}/education`,
+        this.withoutEmptyDateFields(payload),
+        { headers }
+      )
       .toPromise();
 
     if (response?.data) {
@@ -466,8 +632,13 @@ export class PortfolioService {
   }
 
   async updateEducation(id: string | number, payload: any, headers: HttpHeaders) {
+    const routeId = this.requireNumericId(id, 'education');
     const response = await this.http
-      .put<{ success: boolean; data: any }>(`${API_BASE_URL}/education/${id}`, payload, { headers })
+      .put<{ success: boolean; data: any }>(
+        `${API_BASE_URL}/education/${routeId}`,
+        this.withoutEmptyDateFields(payload),
+        { headers }
+      )
       .toPromise();
 
     if (response?.data) {
@@ -480,7 +651,8 @@ export class PortfolioService {
   }
 
   async deleteEducation(id: string | number, headers: HttpHeaders) {
-    await this.http.delete(`${API_BASE_URL}/education/${id}`, { headers }).toPromise();
+    const routeId = this.requireNumericId(id, 'education');
+    await this.http.delete(`${API_BASE_URL}/education/${routeId}`, { headers }).toPromise();
     this.educationData.update((items) => items.filter((item) => item.id !== id));
   }
 
@@ -496,8 +668,9 @@ export class PortfolioService {
   }
 
   async updateSocialLink(id: string | number, payload: { platform?: string; url?: string; username?: string }, headers: HttpHeaders) {
+    const routeId = this.requireNumericId(id, 'social link');
     const response = await this.http
-      .put<{ success: boolean; data: any }>(`${API_BASE_URL}/social-links/${id}`, payload, { headers })
+      .put<{ success: boolean; data: any }>(`${API_BASE_URL}/social-links/${routeId}`, payload, { headers })
       .toPromise();
 
     if (response?.data) {
@@ -508,30 +681,40 @@ export class PortfolioService {
   }
 
   async deleteSocialLink(id: string | number, headers: HttpHeaders) {
-    await this.http.delete(`${API_BASE_URL}/social-links/${id}`, { headers }).toPromise();
+    const routeId = this.requireNumericId(id, 'social link');
+    await this.http.delete(`${API_BASE_URL}/social-links/${routeId}`, { headers }).toPromise();
     this.socialLinksData.update((links) => links.filter((link) => link.id !== id));
   }
 
   // Resume
-  async generateResume(template: string, headers: HttpHeaders): Promise<string> {
+  async generateResume(template: string, headers: HttpHeaders): Promise<{ url: string; filename: string }> {
     const response = await this.http
-      .post<{ success: boolean; data: { downloadUrl: string } }>(
+      .post<{ success: boolean; data: { downloadUrl: string; fileData?: string; filename?: string } }>(
         `${API_BASE_URL}/resume/generate`,
         { template },
         { headers }
       )
       .toPromise();
 
-    // Convert relative URL to absolute (backend is on Render, frontend on Vercel)
+    const fileData = response?.data?.fileData ?? '';
+    const filename = response?.data?.filename ?? `resume-${Date.now()}.pdf`;
+    if (fileData) {
+      return {
+        url: URL.createObjectURL(this.base64PdfToBlob(fileData)),
+        filename,
+      };
+    }
+
+    // Convert relative URL to absolute using the configured API origin.
     const downloadUrl = response?.data?.downloadUrl ?? '';
     if (downloadUrl.startsWith('/')) {
-      return `https://aman-portfolio-app.onrender.com${downloadUrl}`;
+      return { url: `${API_ORIGIN}${downloadUrl}`, filename };
     }
-    return downloadUrl;
+    return { url: downloadUrl, filename };
   }
 
   getResumeDownloadUrl(filename: string): string {
-    return `https://aman-portfolio-app.onrender.com/api/resume/download/${filename}`;
+    return `${API_BASE_URL}/resume/download/${filename}`;
   }
 
   // Mappers
@@ -596,6 +779,30 @@ export class PortfolioService {
     };
   }
 
+  private requireNumericId(id: string | number | null | undefined, label: string): string | number {
+    if (typeof id === 'number' && Number.isInteger(id) && id > 0) {
+      return id;
+    }
+
+    if (typeof id === 'string' && /^\d+$/.test(id)) {
+      return id;
+    }
+
+    throw new Error(`Cannot update this ${label} because its saved ID is missing. Please refresh and try again.`);
+  }
+
+  private withoutEmptyDateFields<T extends Record<string, any>>(payload: T): T {
+    const cleaned = { ...payload };
+
+    for (const key of ['startDate', 'endDate']) {
+      if (cleaned[key] === '') {
+        delete cleaned[key];
+      }
+    }
+
+    return cleaned;
+  }
+
   private sortEducation(items: Education[]): Education[] {
     return [...items].sort((a, b) => {
       if (a.isCurrent !== b.isCurrent) return a.isCurrent ? -1 : 1;
@@ -631,13 +838,26 @@ export class PortfolioService {
     return Number.isNaN(timestamp) ? 0 : timestamp;
   }
 
-  private normalizeCategory(category: string): Skill['category'] {
-    switch ((category ?? '').toLowerCase()) {
+  private normalizeCategory(category: string): string {
+    const value = (category ?? '').trim();
+
+    switch (value.toLowerCase()) {
       case 'frontend': case 'front-end': case 'ui': return 'frontend';
       case 'backend': case 'back-end': case 'api': return 'backend';
       case 'database': case 'databases': case 'db': return 'database';
       case 'tools': case 'tooling': case 'platform': case 'platforms': return 'tools';
-      default: return 'tools';
+      default: return value || 'tools';
     }
+  }
+
+  private base64PdfToBlob(fileData: string): Blob {
+    const binary = atob(fileData);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+
+    return new Blob([bytes], { type: 'application/pdf' });
   }
 }

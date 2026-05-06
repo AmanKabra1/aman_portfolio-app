@@ -34,6 +34,7 @@ import { AuthService } from '../services/auth.service';
                 class="w-full input-base"
                 placeholder="you@example.com"
               />
+              <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Use the email you registered with.</p>
             </div>
 
             <div>
@@ -44,8 +45,9 @@ import { AuthService } from '../services/auth.service';
                 type="password"
                 required
                 class="w-full input-base"
-                placeholder="••••••••"
+                placeholder="Enter your password"
               />
+              <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Minimum 6 characters.</p>
             </div>
 
             <button
@@ -67,14 +69,6 @@ import { AuthService } from '../services/auth.service';
               <a routerLink="/register" class="text-primary-600 dark:text-primary-400 font-medium hover:underline">
                 Create one
               </a>
-            </p>
-          </div>
-
-          <div class="mt-6 rounded-xl border border-amber-200/80 dark:border-amber-500/20 bg-amber-50/80 dark:bg-amber-500/10 px-4 py-4">
-            <p class="text-sm font-semibold text-amber-800 dark:text-amber-200">Portfolio Owner?</p>
-            <p class="text-sm text-amber-700 dark:text-amber-100/80 mt-1">
-              Use this same login to access your admin dashboard at
-              <a routerLink="/dashboard" class="font-medium underline">/dashboard</a>.
             </p>
           </div>
         </div>

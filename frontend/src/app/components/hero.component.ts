@@ -16,9 +16,10 @@ type SocialItem = {
   imports: [CommonModule],
   template: `
     <section
-      class="hero-section relative mt-8 md:mt-12 min-h-screen flex items-center section-padding pt-24 md:pt-28 bg-no-repeat bg-slate-800"
+      class="hero-section relative mt-8 md:mt-12 min-h-screen flex items-center section-padding pt-24 md:pt-28 overflow-hidden bg-neutral-950"
       >
-      <div class="absolute inset-0 bg-gradient-to-r from-black/20 via-black/40 to-black/75"></div>
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="hero-overlay" aria-hidden="true"></div>
 
       <div class="relative max-w-7xl mx-auto w-full flex justify-end">
         <div class="w-full max-w-3xl text-right">
@@ -59,18 +60,19 @@ type SocialItem = {
           }
 
           <div class="flex flex-col sm:flex-row gap-4 justify-end mb-16 animate-slide-up">
-            <a href="#projects" class="btn-primary">
+            <button type="button" (click)="scrollToSection('projects')" class="btn-primary">
               <span>{{ projectsCta() }}</span>
               <span>→</span>
-            </a>
-            <a href="#contact" class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-white/30 bg-white/10 text-white font-semibold hover:bg-white/15 transition-colors duration-200 backdrop-blur-sm">
+            </button>
+            <button type="button" (click)="scrollToSection('contact')" class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-white/30 bg-white/10 text-white font-semibold hover:bg-white/15 transition-colors duration-200 backdrop-blur-sm">
               <span>{{ contactCta() }}</span>
               <span>💬</span>
-            </a>
+            </button>
           </div>
 
           <div class="mt-16 flex justify-end">
             <button
+              (click)="scrollToSection('about')"
               class="p-3 rounded-full border-2 border-white/40 hover:border-primary-400 transition-colors animate-bounce"
               aria-label="Scroll down"
             >
@@ -86,8 +88,29 @@ type SocialItem = {
   styles: [
     `
       .hero-section {
-        background-position: left top;
+        isolation: isolate;
+        min-height: min(820px, 100vh);
+      }
+
+      .hero-bg {
+        position: absolute;
+        inset: 0;
+        z-index: -2;
+        background-image: var(--theme-hero-background, url('/assets/image.png'));
+        background-position: center;
         background-size: cover;
+        opacity: 0.58;
+        transform: scale(1.02);
+      }
+
+      .hero-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background:
+          linear-gradient(90deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.48) 45%, rgba(0, 0, 0, 0.76) 100%),
+          radial-gradient(circle at 80% 22%, color-mix(in srgb, var(--theme-primary, #111111) 32%, transparent), transparent 34%),
+          linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.55));
       }
 
       .typing-caret {
@@ -123,9 +146,16 @@ type SocialItem = {
         line-height: 1;
       }
 
-      @media (min-width: 768px) {
-        .hero-section {
-          background-image: url('/assets/image.png');
+      @media (max-width: 767px) {
+        .hero-bg {
+          opacity: 0.48;
+          background-position: 32% center;
+        }
+
+        .hero-overlay {
+          background:
+            linear-gradient(180deg, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.76)),
+            radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--theme-primary, #111111) 24%, transparent), transparent 40%);
         }
       }
 
@@ -216,6 +246,10 @@ export class HeroComponent implements OnDestroy {
     if (this.timeoutId) {
       clearTimeout(this.timeoutId);
     }
+  }
+
+  scrollToSection(sectionId: string) {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   private tick() {

@@ -1,8 +1,9 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { ToastService } from '../services/toast.service';
 
 @Component({
   selector: 'app-admin-login',
@@ -90,6 +91,8 @@ import { AuthService } from '../services/auth.service';
 export class AdminLoginComponent {
   authService = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private toastService = inject(ToastService);
 
   email = '';
   password = '';
@@ -105,9 +108,10 @@ export class AdminLoginComponent {
 
     try {
       await this.authService.login(this.email, this.password);
-      this.router.navigate(['/admin/dashboard']);
+      await this.router.navigateByUrl(this.safeReturnUrl());
     } catch (error: any) {
       this.error.set(error.message);
+      this.toastService.error(error.message ?? 'Admin login failed.');
     }
   }
 
@@ -133,6 +137,16 @@ export class AdminLoginComponent {
     }
 
     this.fieldErrors.set(errors);
+    if (Object.keys(errors).length) {
+      this.toastService.error(Object.values(errors)[0] ?? 'Please fix the highlighted fields.');
+    }
     return Object.keys(errors).length === 0;
+  }
+
+  private safeReturnUrl() {
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    return returnUrl?.startsWith('/admin/') && returnUrl !== '/admin/login'
+      ? returnUrl
+      : '/admin/dashboard';
   }
 }

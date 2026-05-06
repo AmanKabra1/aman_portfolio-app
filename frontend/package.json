@@ -3,9 +3,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "sync:emailjs-env": "node scripts/sync-emailjs-env.mjs",
     "ng": "ng",
+    "prestart": "npm run sync:emailjs-env",
     "start": "ng serve",
+    "prebuild": "npm run sync:emailjs-env",
     "build": "ng build",
+    "prewatch": "npm run sync:emailjs-env",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },

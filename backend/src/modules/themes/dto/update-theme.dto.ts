@@ -67,6 +67,17 @@ export class UpdateThemeDto {
 
   @IsString()
   @IsOptional()
+  heroBackgroundImage?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['light', 'dark'], {
+    message: 'Color mode must be light or dark',
+  })
+  colorMode?: string;
+
+  @IsString()
+  @IsOptional()
   @IsIn(['small', 'medium', 'large'], {
     message: 'Font size must be small, medium, or large',
   })
@@ -115,7 +126,7 @@ export class UpdateThemeDto {
 
 export class ThemePresetDto {
   @IsString()
-  @IsIn(['blue', 'green', 'purple', 'orange', 'red', 'dark', 'light'], {
+  @IsIn(['default', 'blue', 'green', 'purple', 'orange', 'red', 'dark', 'light'], {
     message: 'Invalid theme preset',
   })
   preset: string;

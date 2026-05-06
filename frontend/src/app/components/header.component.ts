@@ -2,6 +2,7 @@ import { Component, signal, ChangeDetectionStrategy, effect, computed, inject } 
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { PortfolioService } from '../services/portfolio.service';
 
 @Component({
   selector: 'app-header',
@@ -19,11 +20,11 @@ import { AuthService } from '../services/auth.service';
 
         <!-- Desktop Navigation -->
         <div class="hidden md:flex items-center gap-8">
-          <a href="#about" class="text-dark-700 dark:text-gray-300 hover:text-primary-500 transition-colors">About</a>
-          <a href="#skills" class="text-dark-700 dark:text-gray-300 hover:text-primary-500 transition-colors">Skills</a>
-          <a href="#projects" class="text-dark-700 dark:text-gray-300 hover:text-primary-500 transition-colors">Projects</a>
-          <a href="#experience" class="text-dark-700 dark:text-gray-300 hover:text-primary-500 transition-colors">Experience</a>
-          <a href="#contact" class="text-dark-700 dark:text-gray-300 hover:text-primary-500 transition-colors">Contact</a>
+          <button type="button" (click)="scrollToSection('about')" class="text-dark-700 dark:text-gray-300 hover:text-primary-500 transition-colors">About</button>
+          <button type="button" (click)="scrollToSection('skills')" class="text-dark-700 dark:text-gray-300 hover:text-primary-500 transition-colors">Skills</button>
+          <button type="button" (click)="scrollToSection('projects')" class="text-dark-700 dark:text-gray-300 hover:text-primary-500 transition-colors">Projects</button>
+          <button type="button" (click)="scrollToSection('experience')" class="text-dark-700 dark:text-gray-300 hover:text-primary-500 transition-colors">Experience</button>
+          <button type="button" (click)="scrollToSection('contact')" class="text-dark-700 dark:text-gray-300 hover:text-primary-500 transition-colors">Contact</button>
         </div>
 
         <!-- Theme Toggle & Mobile Menu -->
@@ -53,11 +54,11 @@ import { AuthService } from '../services/auth.service';
       <!-- Mobile Navigation -->
       <div *ngIf="isMobileMenuOpen()" class="md:hidden border-t border-gray-200 dark:border-dark-700 py-4">
         <div class="flex flex-col gap-3 px-4">
-          <a href="#about" (click)="toggleMobileMenu()" class="text-dark-700 dark:text-gray-300 hover:text-primary-500 py-2">About</a>
-          <a href="#skills" (click)="toggleMobileMenu()" class="text-dark-700 dark:text-gray-300 hover:text-primary-500 py-2">Skills</a>
-          <a href="#projects" (click)="toggleMobileMenu()" class="text-dark-700 dark:text-gray-300 hover:text-primary-500 py-2">Projects</a>
-          <a href="#experience" (click)="toggleMobileMenu()" class="text-dark-700 dark:text-gray-300 hover:text-primary-500 py-2">Experience</a>
-          <a href="#contact" (click)="toggleMobileMenu()" class="text-dark-700 dark:text-gray-300 hover:text-primary-500 py-2">Contact</a>
+          <button type="button" (click)="scrollToSection('about'); toggleMobileMenu()" class="text-left text-dark-700 dark:text-gray-300 hover:text-primary-500 py-2">About</button>
+          <button type="button" (click)="scrollToSection('skills'); toggleMobileMenu()" class="text-left text-dark-700 dark:text-gray-300 hover:text-primary-500 py-2">Skills</button>
+          <button type="button" (click)="scrollToSection('projects'); toggleMobileMenu()" class="text-left text-dark-700 dark:text-gray-300 hover:text-primary-500 py-2">Projects</button>
+          <button type="button" (click)="scrollToSection('experience'); toggleMobileMenu()" class="text-left text-dark-700 dark:text-gray-300 hover:text-primary-500 py-2">Experience</button>
+          <button type="button" (click)="scrollToSection('contact'); toggleMobileMenu()" class="text-left text-dark-700 dark:text-gray-300 hover:text-primary-500 py-2">Contact</button>
         </div>
       </div>
     </header>
@@ -67,11 +68,25 @@ import { AuthService } from '../services/auth.service';
 })
 export class HeaderComponent {
   private authService = inject(AuthService);
+  private portfolioService = inject(PortfolioService);
 
   isMobileMenuOpen = signal(false);
-  isDark = signal(this.initializeDarkMode());
+  private localDark = signal(this.initializeDarkMode());
+  private modeOverride = signal<boolean | null>(null);
+  isDark = computed(() => {
+    const override = this.modeOverride();
+    if (override !== null) {
+      return override;
+    }
+
+    const portfolioMode = this.portfolioService.theme()?.colorMode;
+    return portfolioMode ? portfolioMode === 'dark' : this.localDark();
+  });
   isAuthenticated = computed(() => this.authService.isAuthenticated());
-  displayName = computed(() => (this.authService.user()?.firstName + ' ' + this.authService.user()?.lastName).trim() || 'Portfolio');
+  displayName = computed(() => {
+    const portfolio = this.portfolioService.getPortfolio();
+    return portfolio?.title?.trim() || 'Portfolio';
+  });
   displayInitial = computed(() => this.displayName().charAt(0).toUpperCase() || 'P');
 
   constructor() {
@@ -83,7 +98,9 @@ export class HeaderComponent {
       } else {
         document.documentElement.classList.remove('dark');
       }
-      localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+      if (!this.portfolioService.theme()?.colorMode) {
+        localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+      }
     });
   }
 
@@ -93,8 +110,7 @@ export class HeaderComponent {
       if (saved) {
         return saved === 'dark';
       }
-      // Check system preference
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+      localStorage.setItem('theme', 'light');
     }
     return false;
   }
@@ -104,6 +120,12 @@ export class HeaderComponent {
   }
 
   toggleTheme() {
-    this.isDark.update((v) => !v);
+    const next = !this.isDark();
+    this.modeOverride.set(next);
+    this.localDark.set(next);
+  }
+
+  scrollToSection(sectionId: string) {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }

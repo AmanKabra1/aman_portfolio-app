@@ -42,6 +42,11 @@ export const routes: Routes = [
     canActivate: [adminGuard],
   },
   {
+    path: 'admin/portfolio/:userId',
+    component: PublicPortfolioComponent,
+    canActivate: [adminGuard],
+  },
+  {
     path: 'resume',
     component: ResumeComponent,
   },
