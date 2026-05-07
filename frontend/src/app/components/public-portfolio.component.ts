@@ -109,6 +109,7 @@ export class PublicPortfolioComponent implements OnInit {
   }
 
   private cssUrl(value: string) {
-    return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    // For CSS URLs, we only need to escape quotes, not backslashes
+    return value.replace(/"/g, '\\"');
   }
 }

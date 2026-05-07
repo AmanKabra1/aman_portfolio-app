@@ -1,7 +1,7 @@
 export const EMAILJS_CONFIG = {
-  serviceId: 'service_1rc2cct',
-  templateId: 'template_jvof4wr',
-  publicKey: 'sg6VqzWC5c2MyT3qu',
+  serviceId: 'YOUR_EMAILJS_SERVICE_ID',
+  templateId: 'YOUR_EMAILJS_TEMPLATE_ID',
+  publicKey: 'YOUR_EMAILJS_PUBLIC_KEY',
 } as const;
 
 // These keys belong to the app's EmailJS account and are shared by the frontend.
