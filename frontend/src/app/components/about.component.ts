@@ -14,7 +14,7 @@ import { PortfolioService } from '../services/portfolio.service';
         <div class="relative mt-10 overflow-hidden rounded-[2rem] border border-white/60 dark:border-dark-700 bg-white/70 dark:bg-dark-900/60 shadow-2xl shadow-orange-100/60 dark:shadow-black/40">
           <div
             class="absolute inset-0 bg-cover bg-left-top bg-no-repeat"
-            style="background-image: url('/assets/image copy.png');"
+            style="background-image: url('/assets/image-copy.png');"
           ></div>
           <div class="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-white/85 dark:to-dark-900/90"></div>
 
